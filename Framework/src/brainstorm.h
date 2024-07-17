@@ -2,7 +2,9 @@
 
 #include "io/window.h"
 #include "io/logger.h"
+
 #include "graphics/gl.h"
+#include "graphics/mesh.h"
 
 namespace BS = Brainstorm;
 typedef Brainstorm::GL BGL;

@@ -159,6 +159,7 @@ xcopy "$(ProjectDir)libraries\include" "$(SolutionDir)libraries\include" /s /i /
   <ItemGroup>
     <ClCompile Include="src\brainstorm.cpp" />
     <ClCompile Include="src\graphics\gl.cpp" />
+    <ClCompile Include="src\graphics\mesh.cpp" />
     <ClCompile Include="src\io\logger.cpp" />
     <ClCompile Include="src\io\window.cpp" />
   </ItemGroup>
@@ -166,6 +167,7 @@ xcopy "$(ProjectDir)libraries\include" "$(SolutionDir)libraries\include" /s /i /
     <ClInclude Include="src\brainstorm.h" />
     <ClInclude Include="src\defines.h" />
     <ClInclude Include="src\graphics\gl.h" />
+    <ClInclude Include="src\graphics\mesh.h" />
     <ClInclude Include="src\io\logger.h" />
     <ClInclude Include="src\io\window.h" />
   </ItemGroup>
