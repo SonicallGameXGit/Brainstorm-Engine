@@ -23,8 +23,8 @@ namespace Brainstorm {
 		const static unsigned int POINTS;
 
 		Mesh();
-		Mesh(const std::vector<float>& vertices, int dimensions, int renderMode);
-		
+
+		void create(const std::vector<float>& vertices, int dimensions, int renderMode);
 		void addBuffer(const std::vector<float>& vertices, int dimensions);
 		
 		void use() const;

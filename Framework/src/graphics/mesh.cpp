@@ -17,7 +17,8 @@ namespace Brainstorm {
 		this->vertexCount = 0;
 		this->id = 0;
 	}
-	Mesh::Mesh(const std::vector<float>& vertices, int dimensions, int renderMode) {
+
+	void Mesh::create(const std::vector<float>& vertices, int dimensions, int renderMode) {
 		this->renderMode = renderMode;
 		this->vertexCount = vertices.size() / dimensions;
 

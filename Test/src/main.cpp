@@ -7,7 +7,7 @@ public:
 	using Application::Application;
 
 	void onLoad() override {
-		mesh = BS::Mesh({ 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f }, 2, BS::Mesh::TRIANGLES);
+		mesh.create({ 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f }, 2, BS::Mesh::TRIANGLES);
 		mesh.addBuffer({ 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f }, 2);
 	}
 	void onUpdate() override {
