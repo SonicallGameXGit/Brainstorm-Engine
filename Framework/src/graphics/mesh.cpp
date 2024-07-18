@@ -12,13 +12,7 @@ namespace Brainstorm {
 
 	const unsigned int Mesh::POINTS = GL_POINTS;
 
-	Mesh::Mesh() {
-		this->renderMode = 0;
-		this->vertexCount = 0;
-		this->id = 0;
-	}
-
-	void Mesh::create(const std::vector<float>& vertices, int dimensions, int renderMode) {
+	Mesh::Mesh(const std::vector<float>& vertices, int dimensions, int renderMode) {
 		this->renderMode = renderMode;
 		this->vertexCount = vertices.size() / dimensions;
 

@@ -16,25 +16,12 @@ namespace Brainstorm {
 	Window::Window(int width, int height, const char* title) {
         this->handle = nullptr;
         this->destroyed = false;
-        this->created = false;
-        this->startWidth = width;
-        this->startHeight = height;
-
         this->title = new char[Window_TitleSize]();
+
         memcpy(this->title, title, Window_TitleSize * sizeof(char));
-	}
-    Window::~Window() {
-        this->destroy();
-    }
 
-    void Window::create() {
-        if (this->created) {
-            Logger::notice("Window is already created!");
-            return;
-        }
-
-        if ((this->handle = glfwCreateWindow(this->startWidth, this->startHeight, this->title, nullptr, nullptr)) == nullptr) {
-            Logger::error("Could not create the window. Params: width=%d, height=%d, title=\"%s\".", this->startWidth, this->startHeight, this->title);
+        if ((this->handle = glfwCreateWindow(width, height, title, nullptr, nullptr)) == nullptr) {
+            Logger::error("Could not create the window. Params: width=%d, height=%d, title=\"%s\".", width, height, title);
             return;
         }
 
@@ -50,8 +37,9 @@ namespace Brainstorm {
 
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
-
-        this->created = true;
+	}
+    Window::~Window() {
+        this->destroy();
     }
 
     void Window::makeCurrent() const {

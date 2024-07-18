@@ -4,17 +4,10 @@
 #include <GLFW/glfw3.h>
 
 std::vector<Brainstorm::Application*> applications;
+bool initialized = false;
 
 namespace Brainstorm {
-    Application::Application(int width, int height, const char* title) : window(width, height, title) {
-        this->startWidth = width;
-        this->startHeight = height;
-        this->startTitle = title;
-    }
-    
-    void Application::onLoad() {}
-    void Application::onUpdate() {}
-    void Application::onDestroy() {}
+    Application::Application(int width, int height, const char* title) : window(width, height, title) {}
 
     Window* Application::getWindow() {
         return &this->window;
@@ -24,52 +17,60 @@ namespace Brainstorm {
         return this == &other;
     }
 
+    void initialize() {
+        if (initialized) {
+            Logger::notice("Brainstorm is already initialized!");
+            return;
+        }
+
+        if (!glfwInit()) {
+            Brainstorm::Logger::fatal("Could not initialize Brainstorm.");
+            return;
+        }
+
+        Brainstorm::Logger::info("Brainstorm initialized.");
+        initialized = true;
+    }
     void registerApplication(Application* application) {
+        if (!initialized) {
+            Logger::fatal("Could not register Application. Brainstorm is not initialized!");
+            return;
+        }
+
         applications.push_back(application);
     }
 }
 
 int Brainstorm::run() {
-    if (!glfwInit()) {
-        Brainstorm::Logger::fatal("Could not initialize Brainstorm.");
+    if (!initialized) {
+        Logger::fatal("Could not run Brainstorm. Brainstorm is not initialized!");
         return 1;
-    }
-
-    Brainstorm::Logger::info("Brainstorm initialized.");
-
-    for (Brainstorm::Application* application : applications) {
-        application->getWindow()->create();
-        application->onLoad();
     }
 
     while (applications.size() > 0) {
         glfwPollEvents();
 
-        for (Brainstorm::Application* application : applications) {
+        for (Application* application : applications) {
             application->getWindow()->makeCurrent();
             application->onUpdate();
             application->getWindow()->swapBuffers();
 
             if (!application->getWindow()->isRunning()) {
-                application->onDestroy();
                 applications.erase(std::find(applications.begin(), applications.end(), application));
-                
                 delete application;
             }
         }
     }
 
-    for (Brainstorm::Application* application : applications) {
+    for (Application* application : applications) {
         application->getWindow()->makeCurrent();
-        application->onDestroy();
-
         delete application;
     }
 
     applications.clear();
 
     glfwTerminate();
-    Brainstorm::Logger::info("Brainstorm terminated.");
+    Logger::info("Brainstorm terminated.");
 
     return 0;
 }

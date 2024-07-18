@@ -7,16 +7,12 @@ namespace Brainstorm {
 	class BS_API Window {
 	private:
 		void* handle;
-
-		int startWidth, startHeight;
 		char* title;
 
-		bool created, destroyed;
+		bool destroyed;
 	public:
 		Window(int width, int height, const char* title);
 		~Window();
-
-		void create();
 
 		void makeCurrent() const;
 		void swapBuffers() const;
