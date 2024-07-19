@@ -1,42 +1,43 @@
 #include <Brainstorm/brainstorm.h>
+#include <Windows.h>
 
-class MyNewApplication : public BS::Application {
+class MyNewFrame : public BS::Frame {
 private:
-	BS::Mesh mesh = BS::Mesh({ 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f }, 2, BS::Mesh::TRIANGLES);
+	BS::Mesh mesh = BS::Mesh({ 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f }, 2, BS::Mesh::TRIANGLE_FAN);
+	BS::ShaderProgram shaderProgram = BS::ShaderProgram()
+		.setVertexShader("assets/shaders/test.vert")
+		.setFragmentShader("assets/shaders/test.frag")
+		.compile();
 public:
-	MyNewApplication() : Application(960, 540, "SUPERDUPER TITLE") {
-		mesh.addBuffer({ 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f }, 2);
+	MyNewFrame() : Frame(960, 540, "SUPERDUPER TITLE") {
+		mesh.addBuffer({ 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f }, 2);
 	}
+
+	float time = 0.0f;
 
 	void onUpdate() override {
 		BGL::clear(BGL::COLOR_BUFFER_BIT);
+
+		time += 0.01f;
+
+		shaderProgram.use();
+		shaderProgram.setFloat("time", time);
 
 		mesh.use();
 		mesh.render();
 
 		BS::Mesh::drop();
-	}
-};
-class MyNewApplication2 : public BS::Application {
-private:
-	BS::Mesh mesh = BS::Mesh({ 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f }, 2, BS::Mesh::TRIANGLES);
-public:
-	void onUpdate() override {
-		BGL::setClearColor(1.0f, 0.0f, 1.0f);
-		BGL::clear(BGL::COLOR_BUFFER_BIT);
+		BS::ShaderProgram::drop();
 
-		mesh.use();
-		mesh.render();
-
-		BS::Mesh::drop();
+		if (GetAsyncKeyState('R') & 0x01) {
+			BS::registerFrame(new MyNewFrame());
+		}
 	}
 };
 
 int main() {
 	BS::initialize();
-	BS::registerApplication(new MyNewApplication());
-	BS::registerApplication(new MyNewApplication());
-	BS::registerApplication(new MyNewApplication2());
+	BS::registerFrame(new MyNewFrame());
 
 	return BS::run();
 }

@@ -160,10 +160,12 @@ xcopy "$(ProjectDir)libraries\include" "$(SolutionDir)libraries\include" /s /i /
     <ClCompile Include="src\brainstorm.cpp" />
     <ClCompile Include="src\graphics\gl.cpp" />
     <ClCompile Include="src\graphics\mesh.cpp" />
+    <ClCompile Include="src\graphics\shader.cpp" />
     <ClCompile Include="src\io\logger.cpp" />
     <ClCompile Include="src\io\window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\graphics\shader.h" />
     <ClInclude Include="src\brainstorm.h" />
     <ClInclude Include="src\defines.h" />
     <ClInclude Include="src\graphics\gl.h" />

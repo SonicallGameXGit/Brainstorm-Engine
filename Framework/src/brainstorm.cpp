@@ -1,76 +1,90 @@
 #include "brainstorm.h"
+#include <memory>
+#include <csignal>
+#include <fstream>
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
-std::vector<Brainstorm::Application*> applications;
+std::vector<Brainstorm::Frame*> frames;
+std::vector<Brainstorm::Frame*> framesToLoad;
+
 bool initialized = false;
 
 namespace Brainstorm {
-    Application::Application(int width, int height, const char* title) : window(width, height, title) {}
+    Frame::Frame(int width, int height, const char* title) : window(width, height, title) {}    
+    void Frame::onUpdate() {}
 
-    Window* Application::getWindow() {
+    Window* Frame::getWindow() {
         return &this->window;
     }
 
-    bool Application::operator==(const Application& other) const {
+    bool Frame::operator==(const Frame& other) const {
         return this == &other;
     }
 
     void initialize() {
         if (initialized) {
-            Logger::notice("Brainstorm is already initialized!");
+            Logger::notice("Brainstorm is already initialized.");
             return;
         }
 
         if (!glfwInit()) {
-            Brainstorm::Logger::fatal("Could not initialize Brainstorm.");
+            Logger::fatal("Could not initialize Brainstorm.");
             return;
         }
 
-        Brainstorm::Logger::info("Brainstorm initialized.");
-        initialized = true;
+        Logger::info("Brainstorm initialized.\n");
     }
-    void registerApplication(Application* application) {
-        if (!initialized) {
-            Logger::fatal("Could not register Application. Brainstorm is not initialized!");
-            return;
-        }
 
-        applications.push_back(application);
+    void registerFrame(Frame* frame) {
+        framesToLoad.push_back(frame);
     }
 }
 
-int Brainstorm::run() {
-    if (!initialized) {
-        Logger::fatal("Could not run Brainstorm. Brainstorm is not initialized!");
-        return 1;
+static void loadApps() {
+    for (Brainstorm::Frame* frame : framesToLoad) {
+        frames.push_back(frame);
     }
 
-    while (applications.size() > 0) {
+    framesToLoad.clear();
+}
+
+int Brainstorm::run() {
+    do {
+        loadApps();
         glfwPollEvents();
 
-        for (Application* application : applications) {
-            application->getWindow()->makeCurrent();
-            application->onUpdate();
-            application->getWindow()->swapBuffers();
+        for (Frame* frame : frames) {
+            frame->getWindow()->makeCurrent();
+            frame->onUpdate();
 
-            if (!application->getWindow()->isRunning()) {
-                applications.erase(std::find(applications.begin(), applications.end(), application));
-                delete application;
+            frame->getWindow()->makeCurrent();
+            frame->getWindow()->swapBuffers();
+
+            if (!frame->getWindow()->isRunning()) {
+                frames.erase(
+                    std::find(
+                        frames.begin(),
+                        frames.end(),
+                        frame
+                    )
+                );
+
+                delete frame;
             }
         }
-    }
+    } while (frames.size() > 0);
 
-    for (Application* application : applications) {
-        application->getWindow()->makeCurrent();
-        delete application;
+    for (Frame* frame : frames) {
+        delete frame;
     }
-
-    applications.clear();
+    for (Frame* frame : framesToLoad) {
+        delete frame;
+    }
 
     glfwTerminate();
-    Logger::info("Brainstorm terminated.");
+    Logger::info("\nBrainstorm terminated.");
 
     return 0;
 }

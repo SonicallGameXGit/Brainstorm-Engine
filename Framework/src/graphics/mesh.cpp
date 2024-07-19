@@ -13,8 +13,9 @@ namespace Brainstorm {
 	const unsigned int Mesh::POINTS = GL_POINTS;
 
 	Mesh::Mesh(const std::vector<float>& vertices, int dimensions, int renderMode) {
+		this->vertexCount = static_cast<uint32_t>(vertices.size()) * dimensions;
 		this->renderMode = renderMode;
-		this->vertexCount = vertices.size() / dimensions;
+
 
 		this->id = 0;
 		glGenVertexArrays(1, &this->id);
@@ -26,7 +27,7 @@ namespace Brainstorm {
 	void Mesh::addBuffer(const std::vector<float>& vertices, int dimensions) {
 		this->use();
 		this->buffers.push_back(0);
-		const int index = this->buffers.size() - 1;
+		const int index = static_cast<int>(this->buffers.size()) - 1;
 
 		glGenBuffers(1, &this->buffers[index]);
 		glBindBuffer(GL_ARRAY_BUFFER, this->buffers[index]);

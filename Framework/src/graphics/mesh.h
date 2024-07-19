@@ -1,15 +1,14 @@
 #pragma once
 #include <vector>
-
 #include "../defines.h"
 
 namespace Brainstorm {
 	class BS_API Mesh {
 	private:
 		unsigned int id;
-		std::vector<unsigned int> buffers;
+		std::vector<uint32_t> buffers;
 
-		size_t vertexCount;
+		uint32_t vertexCount;
 		int renderMode;
 	public:
 		const static unsigned int TRIANGLES;
