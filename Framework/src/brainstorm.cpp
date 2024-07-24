@@ -6,23 +6,12 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
-std::vector<Brainstorm::Frame*> frames;
-std::vector<Brainstorm::Frame*> framesToLoad;
+std::vector<Brainstorm::Window*> windows;
+std::vector<Brainstorm::Window*> windowsToLoad;
 
 bool initialized = false;
 
 namespace Brainstorm {
-    Frame::Frame(int width, int height, const char* title) : window(width, height, title) {}    
-    void Frame::onUpdate() {}
-
-    Window* Frame::getWindow() {
-        return &this->window;
-    }
-
-    bool Frame::operator==(const Frame& other) const {
-        return this == &other;
-    }
-
     void initialize() {
         if (initialized) {
             Logger::notice("Brainstorm is already initialized.");
@@ -37,17 +26,17 @@ namespace Brainstorm {
         Logger::info("Brainstorm initialized.\n");
     }
 
-    void registerFrame(Frame* frame) {
-        framesToLoad.push_back(frame);
+    void registerWindow(Window* window) {
+        windowsToLoad.push_back(window);
     }
 }
 
 static void loadApps() {
-    for (Brainstorm::Frame* frame : framesToLoad) {
-        frames.push_back(frame);
+    for (Brainstorm::Window* window : windowsToLoad) {
+        windows.push_back(window);
     }
 
-    framesToLoad.clear();
+    windowsToLoad.clear();
 }
 
 int Brainstorm::run() {
@@ -55,32 +44,34 @@ int Brainstorm::run() {
         loadApps();
         glfwPollEvents();
 
-        for (Frame* frame : frames) {
-            frame->getWindow()->makeCurrent();
-            frame->onUpdate();
+        for (Window* window : windows) {
+            glfwMakeContextCurrent(static_cast<GLFWwindow*>(window->getHandle()));
 
-            frame->getWindow()->makeCurrent();
-            frame->getWindow()->swapBuffers();
+            window->_API_update();
+            window->onUpdate();
 
-            if (!frame->getWindow()->isRunning()) {
-                frames.erase(
+            glfwMakeContextCurrent(static_cast<GLFWwindow*>(window->getHandle()));
+            glfwSwapBuffers(static_cast<GLFWwindow*>(window->getHandle()));
+
+            if (!window->isRunning()) {
+                windows.erase(
                     std::find(
-                        frames.begin(),
-                        frames.end(),
-                        frame
+                        windows.begin(),
+                        windows.end(),
+                        window
                     )
                 );
 
-                delete frame;
+                delete window;
             }
         }
-    } while (frames.size() > 0);
+    } while (windows.size() > 0);
 
-    for (Frame* frame : frames) {
-        delete frame;
+    for (Window* window : windows) {
+        delete window;
     }
-    for (Frame* frame : framesToLoad) {
-        delete frame;
+    for (Window* window : windowsToLoad) {
+        delete window;
     }
 
     glfwTerminate();

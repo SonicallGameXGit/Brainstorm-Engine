@@ -170,6 +170,7 @@ xcopy "$(ProjectDir)libraries\include" "$(SolutionDir)libraries\include" /s /i /
     <ClInclude Include="src\defines.h" />
     <ClInclude Include="src\graphics\gl.h" />
     <ClInclude Include="src\graphics\mesh.h" />
+    <ClInclude Include="src\io\input.h" />
     <ClInclude Include="src\io\logger.h" />
     <ClInclude Include="src\io\window.h" />
   </ItemGroup>
