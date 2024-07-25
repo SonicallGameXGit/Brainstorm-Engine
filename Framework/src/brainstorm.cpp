@@ -23,6 +23,7 @@ namespace Brainstorm {
             return;
         }
 
+        Texture::_API_init();
         Logger::info("Brainstorm initialized.\n");
     }
 

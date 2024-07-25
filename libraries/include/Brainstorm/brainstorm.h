@@ -5,6 +5,7 @@
 #include "graphics/gl.h"
 #include "graphics/mesh.h"
 #include "graphics/shader.h"
+#include "graphics/texture.h"
 
 namespace BS = Brainstorm;
 typedef Brainstorm::GL BGL;

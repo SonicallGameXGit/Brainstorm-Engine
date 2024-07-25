@@ -23,6 +23,9 @@ namespace Brainstorm {
 
 		Mesh::drop();
 	}
+	Mesh::~Mesh() {
+		this->destroy();
+	}
 
 	void Mesh::addBuffer(const std::vector<float>& vertices, int dimensions) {
 		this->use();
@@ -45,6 +48,12 @@ namespace Brainstorm {
 	}
 	void Mesh::render() const {
 		glDrawArrays(this->renderMode, 0, this->vertexCount);
+	}
+	void Mesh::destroy() {
+		glDeleteVertexArrays(1, &this->id);
+		for (GLuint buffer : this->buffers) {
+			glDeleteBuffers(1, &buffer);
+		}
 	}
 	
 	void Mesh::drop() {

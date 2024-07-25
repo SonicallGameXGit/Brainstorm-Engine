@@ -2,62 +2,90 @@
 #include <Windows.h>
 
 class MyNewWindow : public BS::Window {
+public:
+	MyNewWindow();
+};
+
+class MyNewLogic : public BS::Runnable {
+private:
+	float windowVelocity = 25.0f, time = 0.0f;
+public:
+	void onUpdate(BS::Window* window) override {
+		int windowPosition = window->getY();
+
+		this->windowVelocity -= 1.0f;
+		windowPosition -= static_cast<int>(ceil(this->windowVelocity));
+
+		int wPosTemp = windowPosition;
+		windowPosition = max(min(windowPosition, 2160 - window->getHeight()), 0);
+
+		if (wPosTemp != windowPosition) {
+			this->windowVelocity = 0.0f;
+		}
+
+		window->setX(window->getX() + window->getMouseScrollDy() * 20);
+
+		window->setY(windowPosition);
+
+		this->time += 0.01f;
+
+		if (window->isKeyJustPressed(BS::KeyCode::R)) {
+			BS::registerWindow(new MyNewWindow());
+		}
+	}
+
+	void onKeyEvent(BS::Window* window, BS::KeyCode key, BS::KeyAction action, int mods) override {
+		if (key == BS::KeyCode::SPACE && action == BS::KeyAction::PRESS) {
+			windowVelocity = 30.0f / ((window->getWidth() + window->getHeight()) / 1500.0f);
+			BS::Logger::debug("Space is pressed, yaaay!");
+		}
+	}
+	void onMouseScrollEvent(BS::Window* window, double dx, double dy) {
+		window->setX(window->getX() + static_cast<int>(dx) * 50);
+		BS::Logger::debug("%f, %f", dx, dy);
+	}
+
+	float getTime() const {
+		return this->time;
+	}
+};
+class MyNewRenderer : public BS::Runnable {
 private:
 	BS::Mesh mesh = BS::Mesh({ 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f }, 2, BS::Mesh::TRIANGLE_FAN);
 	BS::ShaderProgram shaderProgram = BS::ShaderProgram()
 		.setVertexShader("assets/shaders/test.vert")
 		.setFragmentShader("assets/shaders/test.frag")
 		.compile();
+
+	BS::Texture testTexture = BS::Texture::loadFromFile("assets/textures/test.png");
+
+	MyNewLogic* logic;
 public:
-	MyNewWindow() : Window(960, 540, "SUPERDUPER TITLE") {
-		mesh.addBuffer({ 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f }, 2);
+	MyNewRenderer(MyNewLogic* logic) {
+		mesh.addBuffer({ 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f }, 2);
+		this->logic = logic;
 	}
 
-	float time = 0.0f;
-	float windowVelocity = 25;
-
-	void onUpdate() override {
-		BGL::clear(BGL::COLOR_BUFFER_BIT);
-		
-		int windowPosition = this->getY();
-
-		windowVelocity -= 1.0f;
-		windowPosition -= static_cast<int>(ceil(windowVelocity));
-
-		int wPosTemp = windowPosition;
-		windowPosition = max(min(windowPosition, 2160 - this->getHeight()), 0);
-		
-		if (wPosTemp != windowPosition) {
-			windowVelocity = 0.0f;
-		}
-
-		this->setX(this->getX() + this->getMouseScrollDy() * 20);
-
-		this->setY(windowPosition);
-
-		time += 0.01f;
+	void onUpdate(BS::Window* window) override {
+		BGL::clear(BGL::COLOR_BUFFER_BIT | BGL::DEPTH_BUFFER_BIT);
 
 		shaderProgram.use();
-		shaderProgram.setFloat("time", time);
+		shaderProgram.setFloat("time", logic->getTime());
+		shaderProgram.setInt("colorSampler", 0);
 
 		mesh.use();
-		mesh.render();
 
-		if (this->isKeyJustPressed(BS::KeyCode::R)) {
-			BS::registerWindow(new MyNewWindow());
-		}
-	}
-	void onKeyEvent(BS::KeyCode key, BS::KeyAction action, int mods) override {
-		if (key == BS::KeyCode::SPACE && action == BS::KeyAction::PRESS) {
-			windowVelocity = 30.0f / ((this->getWidth() + this->getHeight()) / 1500.0f);
-			BS::Logger::debug("Space is pressed, yaaay!");
-		}
-	}
-	void onMouseScrollEvent(double dx, double dy) {
-		this->setX(this->getX() + static_cast<int>(dx) * 50);
-		BS::Logger::debug("%f, %f", dx, dy);
+		testTexture.use();
+		mesh.render();
 	}
 };
+
+MyNewWindow::MyNewWindow() : Window(960, 540, "SUPERDUPER TITLE") {
+	MyNewLogic* logic = new MyNewLogic();
+
+	this->addRunnable(new MyNewLogic());
+	this->addRunnable(new MyNewRenderer(logic));
+}
 
 int main() {
 	BS::initialize();

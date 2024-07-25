@@ -6,13 +6,19 @@
 #include <GL/glew.h>
 
 #include <cstdarg>
-#include <vector>
 
 #define HWND static_cast<GLFWwindow*>(this->handle)
 #define UPTR static_cast<Window*>(glfwGetWindowUserPointer(window))
 
 namespace Brainstorm {
     constexpr size_t Window_TitleSize = 512;
+
+    void Runnable::onUpdate(Window* window) {}
+
+    void Runnable::onKeyEvent(Window* window, KeyCode key, KeyAction action, int mods) {}
+    void Runnable::onMouseEvent(Window* window, MouseButton button, ButtonAction action, int mods) {}
+    void Runnable::onMouseMoveEvent(Window* window, double x, double y) {}
+    void Runnable::onMouseScrollEvent(Window* window, double dx, double dy) {}
 
 	Window::Window(int width, int height, const char* title) {
         this->handle = nullptr;
@@ -28,6 +34,8 @@ namespace Brainstorm {
         this->mouseDelta = {};
         this->mouseScroll = {};
         this->mouseScrollCapture = {};
+
+        this->runnables = {};
 
         memcpy(this->title, title, Window_TitleSize * sizeof(char));
 
@@ -48,17 +56,33 @@ namespace Brainstorm {
         glfwSetKeyCallback(HWND, [](GLFWwindow* window, int key, int scancode, int action, int mods) -> void {
             UPTR->_API_keyInput(key, action);
             UPTR->onKeyEvent(KeyCode(key), KeyAction(action), mods);
+
+            for (Runnable* runnable : UPTR->runnables) {
+                runnable->onKeyEvent(UPTR, KeyCode(key), KeyAction(action), mods);
+            }
         });
         glfwSetMouseButtonCallback(HWND, [](GLFWwindow* window, int button, int action, int mods) -> void {
             UPTR->_API_mouseButtonInput(button, action);
             UPTR->onMouseEvent(MouseButton(button), ButtonAction(action), mods);
+
+            for (Runnable* runnable : UPTR->runnables) {
+                runnable->onMouseEvent(UPTR, MouseButton(button), ButtonAction(action), mods);
+            }
         });
         glfwSetCursorPosCallback(HWND, [](GLFWwindow* window, double xpos, double ypos) -> void {
             UPTR->onMouseMoveEvent(xpos, ypos);
+
+            for (Runnable* runnable : UPTR->runnables) {
+                runnable->onMouseMoveEvent(UPTR, xpos, ypos);
+            }
         });
         glfwSetScrollCallback(HWND, [](GLFWwindow* window, double xoffset, double yoffset) -> void {
             UPTR->_API_mouseScrollInput(xoffset, yoffset);
             UPTR->onMouseScrollEvent(xoffset, yoffset);
+
+            for (Runnable* runnable : UPTR->runnables) {
+                runnable->onMouseScrollEvent(UPTR, xoffset, yoffset);
+            }
         });
 
         glfwMakeContextCurrent(HWND);
@@ -92,9 +116,16 @@ namespace Brainstorm {
         return !glfwWindowShouldClose(HWND);
     }
 
+    void Window::addRunnable(Runnable* runnable) {
+        this->runnables.push_back(runnable);
+    }
     void Window::destroy() {
         if (this->destroyed) return;
         this->destroyed = true;
+
+        for (Runnable* runnable : this->runnables) {
+            delete runnable;
+        }
 
         glfwDestroyWindow(HWND);
         Logger::info("Window \"%p\" destroyed.", this);
@@ -250,6 +281,10 @@ namespace Brainstorm {
         this->mousePosition = glm::vec2(static_cast<float>(mx), static_cast<float>(my));
         this->mouseDelta = this->mousePosition - this->lastMousePosition;
         this->lastMousePosition = this->mousePosition;
+
+        for (Runnable* runnable : this->runnables) {
+            runnable->onUpdate(this);
+        }
     }
 
     void Window::_API_keyInput(int key, int action) {

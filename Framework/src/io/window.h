@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 
 #include <glm/ext/vector_int2.hpp>
 
@@ -12,7 +13,8 @@ namespace Brainstorm {
 	struct BS_API ViewportBounds {
 		glm::vec2 offset, scale;
 	};
-	
+	struct Runnable;
+
 	class BS_API Window {
 	private:
 		void* handle;
@@ -27,6 +29,7 @@ namespace Brainstorm {
 
 		glm::vec2 lastMousePosition, mousePosition, mouseDelta, mouseScroll, mouseScrollCapture;
 	public:
+		std::vector<Runnable*> runnables;
 		ViewportBounds viewportBounds;
 
 		Window(int width, int height, const char* title);
@@ -38,6 +41,8 @@ namespace Brainstorm {
 		virtual void onMouseEvent(MouseButton button, ButtonAction action, int mods);
 		virtual void onMouseMoveEvent(double x, double y);
 		virtual void onMouseScrollEvent(double dx, double dy);
+
+		void addRunnable(Runnable* runnable);
 
 		void destroy();
 		bool isRunning() const;
@@ -98,5 +103,14 @@ namespace Brainstorm {
 
 		void _API_mouseMoveInput(double x, double y);
 		void _API_mouseScrollInput(double dx, double dy);
+	};
+
+	struct BS_API Runnable {
+		virtual void onUpdate(Window* window);
+
+		virtual void onKeyEvent(Window* window, KeyCode key, KeyAction action, int mods);
+		virtual void onMouseEvent(Window* window, MouseButton button, ButtonAction action, int mods);
+		virtual void onMouseMoveEvent(Window* window, double x, double y);
+		virtual void onMouseScrollEvent(Window* window, double dx, double dy);
 	};
 }
