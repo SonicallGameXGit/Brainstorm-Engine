@@ -7,6 +7,8 @@
 #include "graphics/shader.h"
 #include "graphics/texture.h"
 
+#include "util/time.h"
+
 namespace BS = Brainstorm;
 typedef Brainstorm::GL BGL;
 

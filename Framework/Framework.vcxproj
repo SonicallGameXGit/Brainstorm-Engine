@@ -164,6 +164,7 @@ xcopy "$(ProjectDir)libraries\include" "$(SolutionDir)libraries\include" /s /i /
     <ClCompile Include="src\graphics\texture.cpp" />
     <ClCompile Include="src\io\logger.cpp" />
     <ClCompile Include="src\io\window.cpp" />
+    <ClCompile Include="src\util\time.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\graphics\shader.h" />
@@ -175,6 +176,7 @@ xcopy "$(ProjectDir)libraries\include" "$(SolutionDir)libraries\include" /s /i /
     <ClInclude Include="src\io\input.h" />
     <ClInclude Include="src\io\logger.h" />
     <ClInclude Include="src\io\window.h" />
+    <ClInclude Include="src\util\time.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -9,8 +9,10 @@ public:
 class MyNewLogic : public BS::Runnable {
 private:
 	float windowVelocity = 25.0f, time = 0.0f;
+	BS::Timer globalTimer = BS::Timer();
 public:
 	void onUpdate(BS::Window* window) override {
+		globalTimer.update();
 		int windowPosition = window->getY();
 
 		this->windowVelocity -= 1.0f;
@@ -23,11 +25,11 @@ public:
 			this->windowVelocity = 0.0f;
 		}
 
-		window->setX(window->getX() + window->getMouseScrollDy() * 20);
+		window->setX(window->getX() + static_cast<int>(window->getMouseScrollDy() * 20.0f));
 
 		window->setY(windowPosition);
 
-		this->time += 0.01f;
+		this->time += globalTimer.getDelta();
 
 		if (window->isKeyJustPressed(BS::KeyCode::R)) {
 			BS::registerWindow(new MyNewWindow());
@@ -73,6 +75,8 @@ public:
 		shaderProgram.setFloat("time", logic->getTime());
 		shaderProgram.setInt("colorSampler", 0);
 
+		BS::Logger::debug("%f", logic->getTime());
+
 		mesh.use();
 
 		testTexture.use();
@@ -83,7 +87,7 @@ public:
 MyNewWindow::MyNewWindow() : Window(960, 540, "SUPERDUPER TITLE") {
 	MyNewLogic* logic = new MyNewLogic();
 
-	this->addRunnable(new MyNewLogic());
+	this->addRunnable(logic);
 	this->addRunnable(new MyNewRenderer(logic));
 }
 

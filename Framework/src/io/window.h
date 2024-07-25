@@ -17,20 +17,19 @@ namespace Brainstorm {
 
 	class BS_API Window {
 	private:
+		unsigned int* keys;
+		unsigned int* buttons;
+
 		void* handle;
 		char* title;
 
 		bool destroyed;
 
-		unsigned int* keys;
-		unsigned int* buttons;
-
 		unsigned int currentFrame;
-
 		glm::vec2 lastMousePosition, mousePosition, mouseDelta, mouseScroll, mouseScrollCapture;
 	public:
-		std::vector<Runnable*> runnables;
 		ViewportBounds viewportBounds;
+		std::vector<Runnable*> runnables;
 
 		Window(int width, int height, const char* title);
 		~Window();
