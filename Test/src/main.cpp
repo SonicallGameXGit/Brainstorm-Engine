@@ -1,99 +1,237 @@
-#include <Brainstorm/brainstorm.h>
-#include <Windows.h>
+﻿#include <Brainstorm/brainstorm.h>
+#include <glm/gtc/matrix_transform.hpp>
 
-class MyNewWindow : public BS::Window {
-public:
-	MyNewWindow();
+struct MyNewWindow : BS::Window {
+    MyNewWindow(int width, int height, const char* title);
 };
 
-class MyNewLogic : public BS::Runnable {
+class GameLogic : public BS::Runnable {
 private:
-	float windowVelocity = 25.0f, time = 0.0f;
-	BS::Timer globalTimer = BS::Timer();
+    BS::Timer globalTimer;
 public:
-	void onUpdate(BS::Window* window) override {
-		globalTimer.update();
-		int windowPosition = window->getY();
-
-		this->windowVelocity -= 1.0f;
-		windowPosition -= static_cast<int>(ceil(this->windowVelocity));
-
-		int wPosTemp = windowPosition;
-		windowPosition = max(min(windowPosition, 2160 - window->getHeight()), 0);
-
-		if (wPosTemp != windowPosition) {
-			this->windowVelocity = 0.0f;
-		}
-
-		window->setX(window->getX() + static_cast<int>(window->getMouseScrollDy() * 20.0f));
-
-		window->setY(windowPosition);
-
-		this->time += globalTimer.getDelta();
-
-		if (window->isKeyJustPressed(BS::KeyCode::R)) {
-			BS::registerWindow(new MyNewWindow());
-		}
-	}
-
-	void onKeyEvent(BS::Window* window, BS::KeyCode key, BS::KeyAction action, int mods) override {
-		if (key == BS::KeyCode::SPACE && action == BS::KeyAction::PRESS) {
-			windowVelocity = 30.0f / ((window->getWidth() + window->getHeight()) / 1500.0f);
-			BS::Logger::debug("Space is pressed, yaaay!");
-		}
-	}
-	void onMouseScrollEvent(BS::Window* window, double dx, double dy) {
-		window->setX(window->getX() + static_cast<int>(dx) * 50);
-		BS::Logger::debug("%f, %f", dx, dy);
-	}
-
-	float getTime() const {
-		return this->time;
-	}
-};
-class MyNewRenderer : public BS::Runnable {
-private:
-	BS::Mesh mesh = BS::Mesh({ 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f }, 2, BS::Mesh::TRIANGLE_FAN);
-	BS::ShaderProgram shaderProgram = BS::ShaderProgram()
-		.setVertexShader("assets/shaders/test.vert")
-		.setFragmentShader("assets/shaders/test.frag")
-		.compile();
-
-	BS::Texture testTexture = BS::Texture::loadFromFile("assets/textures/test.png");
-
-	MyNewLogic* logic;
-public:
-	MyNewRenderer(MyNewLogic* logic) {
-		mesh.addBuffer({ 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f }, 2);
-		this->logic = logic;
-	}
+    glm::vec3 cubeColor{ 1.0f };
+    glm::vec2 cubeRotation{};
+    float cubeScale = 1.0f;
 
 	void onUpdate(BS::Window* window) override {
-		BGL::clear(BGL::COLOR_BUFFER_BIT | BGL::DEPTH_BUFFER_BIT);
+        globalTimer.update();
 
-		shaderProgram.use();
-		shaderProgram.setFloat("time", logic->getTime());
-		shaderProgram.setInt("colorSampler", 0);
+        if (window->isMouseButtonPressed(BS::MouseButton::LEFT)) {
+            window->grabMouse();
+            
+            cubeRotation.x += window->getMouseDy() * 0.1f;
+            cubeRotation.y += window->getMouseDx() * 0.1f;
+        }
+        else {
+            window->releaseMouse();
+            cubeRotation.y += 22.5f * globalTimer.getDelta();
+        }
+        
+        cubeRotation -= glm::floor(cubeRotation / 360.0f) * 360.0f;
+        cubeScale += window->getMouseScrollDy() * 0.01f;
 
-		BS::Logger::debug("%f", logic->getTime());
+        if (window->isKeyJustPressed(BS::KeyCode::R)) {
+            BS::registerWindow(new MyNewWindow(1920, 1080, "New Window"));
+        }
+	}
+};
+class GameRenderer : public BS::Runnable {
+private:
+	BS::Mesh cubeMesh = BS::Mesh(BS::VertexBuffer({
+        0,0,1,
+        1,0,1,
+        0,1,1,
+        0,1,1,
+        1,0,1,
+        1,1,1,
 
-		mesh.use();
+        1,0,0,
+        0,0,0,
+        1,1,0,
+        1,1,0,
+        0,0,0,
+        0,1,0,
 
-		testTexture.use();
-		mesh.render();
+        1,0,1,
+        1,0,0,
+        1,1,1,
+        1,1,1,
+        1,0,0,
+        1,1,0,
+
+        0,0,0,
+        0,0,1,
+        0,1,0,
+        0,1,0,
+        0,0,1,
+        0,1,1,
+
+        0,1,1,
+        1,1,1,
+        0,1,0,
+        0,1,0,
+        1,1,1,
+        1,1,0,
+
+        0,0,0,
+        1,0,0,
+        0,0,1,
+        0,0,1,
+        1,0,0,
+        1,0,1
+	}, 3), {
+        BS::VertexBuffer({
+            0,0,
+            1,0,
+            0,1,
+            0,1,
+            1,0,
+            1,1,
+
+            0,0,
+            1,0,
+            0,1,
+            0,1,
+            1,0,
+            1,1,
+
+            0,0,
+            1,0,
+            0,1,
+            0,1,
+            1,0,
+            1,1,
+
+            0,0,
+            1,0,
+            0,1,
+            0,1,
+            1,0,
+            1,1,
+
+            0,0,
+            1,0,
+            0,1,
+            0,1,
+            1,0,
+            1,1,
+
+            0,0,
+            1,0,
+            0,1,
+            0,1,
+            1,0,
+            1,1
+        }, 2),
+        BS::VertexBuffer({
+            0,0,1,
+            0,0,1,
+            0,0,1,
+            0,0,1,
+            0,0,1,
+            0,0,1,
+
+            0,0,-1,
+            0,0,-1,
+            0,0,-1,
+            0,0,-1,
+            0,0,-1,
+            0,0,-1,
+
+            1,0,0,
+            1,0,0,
+            1,0,0,
+            1,0,0,
+            1,0,0,
+            1,0,0,
+
+            -1,0,0,
+            -1,0,0,
+            -1,0,0,
+            -1,0,0,
+            -1,0,0,
+            -1,0,0,
+
+            0,1,0,
+            0,1,0,
+            0,1,0,
+            0,1,0,
+            0,1,0,
+            0,1,0,
+
+            0,-1,0,
+            0,-1,0,
+            0,-1,0,
+            0,-1,0,
+            0,-1,0,
+            0,-1,0
+        }, 3)
+    }, BS::Mesh::TRIANGLES);
+
+    BS::ShaderProgram shaderProgram = BS::ShaderProgram()
+        .setVertexShader("assets/shaders/vertex.glsl")
+        .setFragmentShader("assets/shaders/fragment.glsl")
+        .compile();
+
+    BS::Texture cubeColorTexture = BS::Texture::loadFromFile("assets/textures/brick-wall_albedo.png");
+    BS::Texture cubeNormalTexture = BS::Texture::loadFromFile("assets/textures/brick-wall_normal-ogl.png");
+public:
+    const GameLogic* gameLogic;
+
+    GameRenderer(const GameLogic* gameLogic) {
+        this->gameLogic = gameLogic;
+        BGL::enableDepthTest();
+    }
+
+	void onUpdate(BS::Window* window) override {
+        BGL::clear(BGL::COLOR_BUFFER_BIT | BGL::DEPTH_BUFFER_BIT);
+
+        shaderProgram.use();
+        shaderProgram.setInt("colorSampler", 0);
+        shaderProgram.setInt("normalSampler", 1);
+
+        glm::mat4 projectionMatrix = glm::perspective(glm::radians(90.0f), static_cast<float>(window->getWidth()) / static_cast<float>(window->getHeight()), 0.01f, 500.0f);
+
+        cubeMesh.use();
+
+        glm::vec2 angle = -glm::radians(gameLogic->cubeRotation);
+        glm::vec3 cameraPosition = gameLogic->cubeScale * 0.5f - glm::vec3(
+            -sin(angle.y) * cos(angle.x),
+            sin(angle.x),
+            -cos(angle.y) * cos(angle.x)
+        );
+
+        glm::mat4 viewMatrix = glm::mat4(1.0f);
+        viewMatrix = glm::rotate(viewMatrix, glm::radians(gameLogic->cubeRotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+        viewMatrix = glm::rotate(viewMatrix, glm::radians(gameLogic->cubeRotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+        viewMatrix = glm::translate(viewMatrix, -cameraPosition);
+        
+        glm::mat4 modelMatrix = glm::mat4(1.0f);
+        modelMatrix = glm::scale(modelMatrix, glm::vec3(gameLogic->cubeScale));
+
+        shaderProgram.setMatrix4("mvp", projectionMatrix * viewMatrix * modelMatrix);
+        shaderProgram.setMatrix4("model", modelMatrix);
+        shaderProgram.setVector3("color", gameLogic->cubeColor);
+        shaderProgram.setVector3("cameraPosition", cameraPosition);
+
+        cubeColorTexture.use();
+        cubeNormalTexture.use(1);
+
+        cubeMesh.render();
 	}
 };
 
-MyNewWindow::MyNewWindow() : Window(960, 540, "SUPERDUPER TITLE") {
-	MyNewLogic* logic = new MyNewLogic();
+MyNewWindow::MyNewWindow(int width, int height, const char* title) : Window(width, height, title) {
+    GameLogic* gameLogic = new GameLogic();
+    gameLogic->cubeColor = glm::normalize(glm::vec3(rand() % 10000 / 10000.0f, rand() % 10000 / 10000.0f, rand() % 10000 / 10000.0f));
 
-	this->addRunnable(logic);
-	this->addRunnable(new MyNewRenderer(logic));
+    this->addRunnable(gameLogic);
+    this->addRunnable(new GameRenderer(gameLogic));
 }
 
 int main() {
 	BS::initialize();
-	BS::registerWindow(new MyNewWindow());
+	BS::registerWindow(new MyNewWindow(1920, 1080, "MyNewGame!"));
 
 	return BS::run();
 }

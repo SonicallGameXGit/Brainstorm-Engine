@@ -1,5 +1,5 @@
 #pragma once
-#include <vector>
+#include <array>
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_int2.hpp>
@@ -20,7 +20,7 @@ namespace Brainstorm {
 	class BS_API ShaderProgram {
 	private:
 		unsigned int id;
-		std::vector<unsigned int> shaders;
+		std::array<unsigned int, 3> shaders;
 
 		unsigned int setShader(const char* location, unsigned int type) const;
 	public:

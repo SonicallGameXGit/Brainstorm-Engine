@@ -13,7 +13,7 @@ Logger::error("Could not compile ShaderProgram. Error: %s\n", error)
 namespace Brainstorm {
 	ShaderProgram::ShaderProgram() {
 		this->id = glCreateProgram();
-		this->shaders = std::vector<unsigned int>(3);
+		this->shaders = std::array<unsigned int, 3>();
 	}
 
 	unsigned int ShaderProgram::setShader(const char* location, unsigned int type) const {
@@ -34,8 +34,9 @@ namespace Brainstorm {
 			GLint success;
 			glGetShaderiv(shaderId, GL_COMPILE_STATUS, &success);
 
-			std::string name = "";
-			switch (type) {
+			if (!success) {
+				std::string name = "";
+				switch (type) {
 				case GL_VERTEX_SHADER: {
 					name = "[VERTEX SHADER]";
 					break;
@@ -48,9 +49,8 @@ namespace Brainstorm {
 					name = "[GEOMETRY SHADER]";
 					break;
 				}
-			}
+				}
 
-			if (!success) {
 				const size_t errorLength = 500;
 				
 				char error[errorLength];
@@ -164,12 +164,12 @@ namespace Brainstorm {
 	}
 
 	void ShaderProgram::setMatrix2(const char* location, const glm::mat2& value) const {
-		glUniformMatrix2fv(glGetUniformLocation(this->id, location), 4, false, &value[0][0]);
+		glUniformMatrix2fv(glGetUniformLocation(this->id, location), 1, false, &value[0][0]);
 	}
 	void ShaderProgram::setMatrix3(const char* location, const glm::mat3& value) const {
-		glUniformMatrix3fv(glGetUniformLocation(this->id, location), 9, false, &value[0][0]);
+		glUniformMatrix3fv(glGetUniformLocation(this->id, location), 1, false, &value[0][0]);
 	}
 	void ShaderProgram::setMatrix4(const char* location, const glm::mat4& value) const {
-		glUniformMatrix4fv(glGetUniformLocation(this->id, location), 16, false, &value[0][0]);
+		glUniformMatrix4fv(glGetUniformLocation(this->id, location), 1, false, &value[0][0]);
 	}
 }

@@ -217,6 +217,13 @@ namespace Brainstorm {
         return this->handle;
     }
 
+    void Window::grabMouse() const {
+        glfwSetInputMode(HWND, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+    void Window::releaseMouse() const {
+        glfwSetInputMode(HWND, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+
     void Window::enableVSync() {
         glfwSwapInterval(1);
     }

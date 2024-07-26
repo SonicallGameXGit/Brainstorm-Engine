@@ -74,6 +74,9 @@ namespace Brainstorm {
 		static void enableVSync();
 		static void disableVSync();
 
+		void grabMouse() const;
+		void releaseMouse() const;
+
 		void* getHandle();
 
 		bool isKeyPressed(KeyCode key) const;
@@ -99,8 +102,6 @@ namespace Brainstorm {
 
 		void _API_keyInput(int key, int action);
 		void _API_mouseButtonInput(int button, int action);
-
-		void _API_mouseMoveInput(double x, double y);
 		void _API_mouseScrollInput(double dx, double dy);
 	};
 

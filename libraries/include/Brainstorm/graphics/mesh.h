@@ -3,12 +3,19 @@
 #include "../defines.h"
 
 namespace Brainstorm {
+	struct BS_API VertexBuffer {
+		std::vector<float> data;
+		int dimensions;
+
+		VertexBuffer(const std::vector<float>& data, int dimensions);
+	};
+
 	class BS_API Mesh {
 	private:
 		unsigned int id;
-		std::vector<uint32_t> buffers;
+		std::vector<unsigned int> buffers;
 
-		uint32_t vertexCount;
+		unsigned int vertexCount;
 		int renderMode;
 	public:
 		const static unsigned int TRIANGLES;
@@ -21,11 +28,9 @@ namespace Brainstorm {
 
 		const static unsigned int POINTS;
 
-		Mesh(const std::vector<float>& vertices, int dimensions, int renderMode);
+		Mesh(const VertexBuffer& vertices, const std::vector<VertexBuffer>& additional, int renderMode);
 		~Mesh();
 
-		void addBuffer(const std::vector<float>& vertices, int dimensions);
-		
 		void use() const;
 		void render() const;
 		void destroy();

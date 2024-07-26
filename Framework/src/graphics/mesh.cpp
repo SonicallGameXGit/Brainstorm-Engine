@@ -12,35 +12,43 @@ namespace Brainstorm {
 
 	const unsigned int Mesh::POINTS = GL_POINTS;
 
-	Mesh::Mesh(const std::vector<float>& vertices, int dimensions, int renderMode) {
-		this->vertexCount = static_cast<uint32_t>(vertices.size()) * dimensions;
+	VertexBuffer::VertexBuffer(const std::vector<float>& data, GLint dimensions) {
+		this->data = data;
+		this->dimensions = dimensions;
+	}
+
+	inline static GLuint createVertexBuffer(const VertexBuffer& vertices, GLuint index) {
+		GLuint id;
+		glGenBuffers(1, &id);
+		glBindBuffer(GL_ARRAY_BUFFER, id);
+
+		glBufferData(GL_ARRAY_BUFFER, vertices.data.size() * sizeof(float), vertices.data.data(), GL_STATIC_DRAW);
+
+		glEnableVertexAttribArray(index);
+		glVertexAttribPointer(index, vertices.dimensions, GL_FLOAT, false, 0, nullptr);
+
+		return id;
+	}
+
+	Mesh::Mesh(const VertexBuffer& vertices, const std::vector<VertexBuffer>& additional, int renderMode) {
+		this->id = 0;
+		this->buffers = std::vector<GLuint>(additional.size() + 1);
+
+		this->vertexCount = static_cast<GLsizei>(vertices.data.size() / vertices.dimensions);
 		this->renderMode = renderMode;
 
-
-		this->id = 0;
 		glGenVertexArrays(1, &this->id);
-		this->addBuffer(vertices, dimensions);
+		this->use();
 
-		Mesh::drop();
+		this->buffers[0] = createVertexBuffer(vertices, 0);
+		for (size_t i = 1; i < this->buffers.size(); i++) {
+			this->buffers[i] = createVertexBuffer(additional[i - 1], i);
+		}
+
+		glBindVertexArray(0);
 	}
 	Mesh::~Mesh() {
 		this->destroy();
-	}
-
-	void Mesh::addBuffer(const std::vector<float>& vertices, int dimensions) {
-		this->use();
-		this->buffers.push_back(0);
-		const int index = static_cast<int>(this->buffers.size()) - 1;
-
-		glGenBuffers(1, &this->buffers[index]);
-		glBindBuffer(GL_ARRAY_BUFFER, this->buffers[index]);
-
-		glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(vertices.size()) * sizeof(float), vertices.data(), GL_STATIC_DRAW);
-
-		glEnableVertexAttribArray(index);
-		glVertexAttribPointer(index, dimensions, GL_FLOAT, false, 0, nullptr);
-
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 	
 	void Mesh::use() const {

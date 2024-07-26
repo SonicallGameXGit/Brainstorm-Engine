@@ -17,20 +17,19 @@ namespace Brainstorm {
 
 	class BS_API Window {
 	private:
+		unsigned int* keys;
+		unsigned int* buttons;
+
 		void* handle;
 		char* title;
 
 		bool destroyed;
 
-		unsigned int* keys;
-		unsigned int* buttons;
-
 		unsigned int currentFrame;
-
 		glm::vec2 lastMousePosition, mousePosition, mouseDelta, mouseScroll, mouseScrollCapture;
 	public:
-		std::vector<Runnable*> runnables;
 		ViewportBounds viewportBounds;
+		std::vector<Runnable*> runnables;
 
 		Window(int width, int height, const char* title);
 		~Window();
@@ -75,6 +74,9 @@ namespace Brainstorm {
 		static void enableVSync();
 		static void disableVSync();
 
+		void grabMouse() const;
+		void releaseMouse() const;
+
 		void* getHandle();
 
 		bool isKeyPressed(KeyCode key) const;
@@ -100,8 +102,6 @@ namespace Brainstorm {
 
 		void _API_keyInput(int key, int action);
 		void _API_mouseButtonInput(int button, int action);
-
-		void _API_mouseMoveInput(double x, double y);
 		void _API_mouseScrollInput(double dx, double dy);
 	};
 
