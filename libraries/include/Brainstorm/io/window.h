@@ -17,7 +17,7 @@
 
 namespace Brainstorm {
 	struct ViewportBounds {
-		glm::vec2 offset, scale;
+		glm::vec2 offset = glm::vec2(), scale = glm::vec2(1.0f);
 	};
 	struct Runnable;
 
