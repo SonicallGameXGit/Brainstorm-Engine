@@ -1,19 +1,17 @@
 #pragma once
-#include <vector>
-#include <functional>
-
-#include "../defines.h"
+#include <stdint.h>
 
 namespace Brainstorm {
-	class BS_API Timer {
+	class Timer {
 	private:
 		int64_t lastTime;
-		float delta, time, realTime, scale;
+		float delta, time, realTime;
 	public:
+		float scale;
+
 		Timer();
 
 		void update();
-		void setScale(float scale);
 		
 		float getDelta() const;
 		float getRealDelta() const;

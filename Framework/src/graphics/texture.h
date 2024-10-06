@@ -1,35 +1,28 @@
 #pragma once
+#include <GL/glew.h>
+#include <stb_image.h>
+#include <array>
 #include "../io/logger.h"
 
 namespace Brainstorm {
-	class BS_API Texture {
+	class Texture {
 	private:
 		static bool initialized;
-
-		unsigned int id;
-		int width, height;
+		static std::array<GLuint, 32> boundIds;
 	public:
-		static int FORMAT_RGBA;
-		static int FORMAT_RGB;
-		static int FORMAT_RG;
-		static int FORMAT_R;
+		static GLint FORMAT_RGBA;
+		static GLint FORMAT_RGB;
+		static GLint FORMAT_RG;
+		static GLint FORMAT_R;
 
-		static int FILTER_LINEAR;
-		static int FILTER_NEAREST;
+		static GLint FILTER_LINEAR;
+		static GLint FILTER_NEAREST;
 
-		Texture(int id, int width, int height);
-		~Texture();
-
-		static Texture loadFromFile(const char* location, int filter = Texture::FILTER_LINEAR);
-		static Texture create(const unsigned char* data, int width, int height, int format, int filter = Texture::FILTER_LINEAR);
+		static GLuint loadFromFile(const char* location, GLint filter = Texture::FILTER_LINEAR);
+		static GLuint create(const unsigned char* data, GLsizei width, GLsizei height, GLint format, GLint filter = Texture::FILTER_LINEAR);
 		
-		void use(unsigned char index = 0) const;
-		void destroy() const;
-		
-		unsigned int getId() const;
-		int getWidth() const;
-		int getHeight() const;
-
+		static void use(GLuint texture, GLint index = 0);
+		static void destroy(GLuint texture);
 		static void drop();
 
 		static void _API_init();

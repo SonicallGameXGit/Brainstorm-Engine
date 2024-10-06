@@ -1,18 +1,19 @@
 #include "mesh.h"
-#include <GL/glew.h>
 
 namespace Brainstorm {
-	const unsigned int Mesh::TRIANGLES = GL_TRIANGLES;
-	const unsigned int Mesh::TRIANGLE_FAN = GL_TRIANGLE_FAN;
-	const unsigned int Mesh::TRIANGLE_STRIP = GL_TRIANGLE_STRIP;
+	const GLint Mesh::TRIANGLES = GL_TRIANGLES;
+	const GLint Mesh::TRIANGLE_FAN = GL_TRIANGLE_FAN;
+	const GLint Mesh::TRIANGLE_STRIP = GL_TRIANGLE_STRIP;
 
-	const unsigned int Mesh::LINES = GL_LINES;
-	const unsigned int Mesh::LINE_STRIP = GL_LINE_STRIP;
-	const unsigned int Mesh::LINE_LOOP = GL_LINE_LOOP;
+	const GLint Mesh::LINES = GL_LINES;
+	const GLint Mesh::LINE_STRIP = GL_LINE_STRIP;
+	const GLint Mesh::LINE_LOOP = GL_LINE_LOOP;
 
-	const unsigned int Mesh::POINTS = GL_POINTS;
+	const GLint Mesh::POINTS = GL_POINTS;
 
-	VertexBuffer::VertexBuffer(const std::vector<float>& data, GLint dimensions) {
+	GLuint Mesh::boundId = 0;
+
+	VertexBuffer::VertexBuffer(const std::vector<float>& data, int dimensions) {
 		this->data = data;
 		this->dimensions = dimensions;
 	}
@@ -30,7 +31,7 @@ namespace Brainstorm {
 		return id;
 	}
 
-	Mesh::Mesh(const VertexBuffer& vertices, const std::vector<VertexBuffer>& additional, int renderMode) {
+	Mesh::Mesh(const VertexBuffer& vertices, const std::vector<VertexBuffer>& additional, GLint renderMode) {
 		this->id = 0;
 		this->buffers = std::vector<GLuint>(additional.size() + 1);
 
@@ -38,11 +39,11 @@ namespace Brainstorm {
 		this->renderMode = renderMode;
 
 		glGenVertexArrays(1, &this->id);
-		this->use();
+		glBindVertexArray(this->id);
 
 		this->buffers[0] = createVertexBuffer(vertices, 0);
 		for (size_t i = 1; i < this->buffers.size(); i++) {
-			this->buffers[i] = createVertexBuffer(additional[i - 1], i);
+			this->buffers[i] = createVertexBuffer(additional[i - 1], static_cast<GLuint>(i));
 		}
 
 		glBindVertexArray(0);
@@ -51,10 +52,12 @@ namespace Brainstorm {
 		this->destroy();
 	}
 	
-	void Mesh::use() const {
-		glBindVertexArray(this->id);
-	}
 	void Mesh::render() const {
+		if (Mesh::boundId != this->id) {
+			glBindVertexArray(this->id);
+			Mesh::boundId = this->id;
+		}
+
 		glDrawArrays(this->renderMode, 0, this->vertexCount);
 	}
 	void Mesh::destroy() {
@@ -65,6 +68,7 @@ namespace Brainstorm {
 	}
 	
 	void Mesh::drop() {
+		Mesh::boundId = 0;
 		glBindVertexArray(0);
 	}
 }

@@ -1,9 +1,5 @@
-#include "texture.h"
-
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
-#include <GL/glew.h>
+#include "texture.h"
 
 namespace Brainstorm {
 	GLint Texture::FORMAT_R = GL_R;
@@ -15,23 +11,15 @@ namespace Brainstorm {
 	GLint Texture::FILTER_NEAREST = GL_NEAREST;
 
 	bool Texture::initialized = false;
+	std::array<GLuint, 32> Texture::boundIds = {};
 
-	Texture::Texture(GLint id, GLsizei width, GLsizei height) {
-		this->id = id;
-		this->width = width;
-		this->height = height;
-	}
-	Texture::~Texture() {
-		this->destroy();
-	}
-
-	Texture Texture::loadFromFile(const char* location, int filter) {
+	GLuint Texture::loadFromFile(const char* location, GLint filter) {
 		int width, height, channels;
 		unsigned char* pixels = stbi_load(location, &width, &height, &channels, STBI_rgb_alpha);
 
 		if (pixels == nullptr) {
 			Logger::error("Could not load texture file: \"%s\"", location);
-			return Texture(0, 0, 0);
+			return 0;
 		}
 
 		int format;
@@ -51,12 +39,12 @@ namespace Brainstorm {
 			break;
 		default:
 			Logger::error("Format of texture at: \"%s\" is not supported.", location);
-			return Texture(0, 0, 0);
+			return 0;
 		}
 
 		return Texture::create(pixels, width, height, format, filter);
 	}
-	Texture Texture::create(const unsigned char* data, GLsizei width, GLsizei height, GLint format, GLint filter) {
+	GLuint Texture::create(const unsigned char* data, GLsizei width, GLsizei height, GLint format, GLint filter) {
 		GLuint texture;
 		
 		glGenTextures(1, &texture);
@@ -70,39 +58,27 @@ namespace Brainstorm {
 		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 
 		Texture::drop();
-		return Texture(texture, width, height);
+		return texture;
 	}
 
-	unsigned int Texture::getId() const {
-		return this->id;
-	}
-
-	int Texture::getWidth() const {
-		return this->width;
-	}
-	int Texture::getHeight() const {
-		return this->height;
-	}
-
-	void Texture::use(unsigned char index) const {
-		glActiveTexture(GL_TEXTURE0 + index);
-		glBindTexture(GL_TEXTURE_2D, this->id);
-	}
-	void Texture::drop() {
-		glBindTexture(GL_TEXTURE_2D, 0);
-	}
-
-	void Texture::destroy() const {
-		glDeleteTextures(1, &this->id);
-	}
-
-	void Texture::_API_init() {
-		if (Texture::initialized) {
-			Logger::notice("Texture API is already initialized.");
+	void Texture::use(GLuint texture, GLint index) {
+		if (index > 31) {
+			Logger::error("Texture binding index out of bounds! 0 (inclusive) - 32 (exclusive).");
+			return;
+		}
+		if (Texture::boundIds[index] == texture) {
 			return;
 		}
 
-		Texture::initialized = true;
-		stbi_set_flip_vertically_on_load(true);
+		glActiveTexture(GL_TEXTURE0 + index);
+		glBindTexture(GL_TEXTURE_2D, texture);
+	}
+	void Texture::drop() {
+		Texture::boundIds = {};
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+
+	void Texture::destroy(GLuint texture) {
+		glDeleteTextures(1, &texture);
 	}
 }

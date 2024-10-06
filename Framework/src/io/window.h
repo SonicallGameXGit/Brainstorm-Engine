@@ -1,116 +1,125 @@
 #pragma once
 #include <vector>
+#include <string>
 
 #include <glm/ext/vector_int2.hpp>
 
 #include <glm/ext/vector_float4.hpp>
 #include <glm/ext/vector_float2.hpp>
 
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+#include <GL/glew.h>
+
+#include "logger.h"
 #include "input.h"
-#include "../defines.h"
+
 
 namespace Brainstorm {
-	struct BS_API ViewportBounds {
+	struct ViewportBounds {
 		glm::vec2 offset, scale;
 	};
 	struct Runnable;
 
-	class BS_API Window {
+	typedef void (*KeyCallback)(KeyCode key, KeyAction action, int mods);
+	typedef void (*MouseCallback)(MouseButton button, ButtonAction action, int mods);
+	typedef void (*MouseMoveCallback)(double x, double y);
+	typedef void (*MouseScrollCallback)(double dx, double dy);
+
+	class Window {
 	private:
-		unsigned int* keys;
-		unsigned int* buttons;
+		static bool created, closed;
 
-		void* handle;
-		char* title;
+		static unsigned int *keys, *buttons;
+		static void* handle;
 
-		bool destroyed;
+		static unsigned int currentFrame;
+		static glm::vec2 lastMousePosition, mousePosition, mouseDelta, mouseScroll, mouseScrollCapture;
 
-		unsigned int currentFrame;
-		glm::vec2 lastMousePosition, mousePosition, mouseDelta, mouseScroll, mouseScrollCapture;
+		static KeyCallback keyCallback;
+		static MouseCallback mouseCallback;
+		static MouseMoveCallback mouseMoveCallback;
+		static MouseScrollCallback mouseScrollCallback;
+
+		static void resetMouse();
 	public:
-		ViewportBounds viewportBounds;
-		std::vector<Runnable*> runnables;
+		static std::vector<Runnable*> runnables;
+		static ViewportBounds viewportBounds;
 
-		Window(int width, int height, const char* title);
-		~Window();
-
-		virtual void onUpdate();
+		static void create(int width, int height, const char* title);
+		static void swapBuffers();
+		static void pollEvents();
+		static void close();
 		
-		virtual void onKeyEvent(KeyCode key, KeyAction action, int mods);
-		virtual void onMouseEvent(MouseButton button, ButtonAction action, int mods);
-		virtual void onMouseMoveEvent(double x, double y);
-		virtual void onMouseScrollEvent(double dx, double dy);
+		virtual void setKeyCallback(const KeyCallback callback);
+		virtual void setMouseCallback(const MouseCallback callback);
+		virtual void setMouseMoveCallback(const MouseMoveCallback callback);
+		virtual void setMouseScrollCallback(const MouseScrollCallback callback);
 
-		void addRunnable(Runnable* runnable);
+		static void addRunnable(Runnable* runnable);
+		static bool isRunning();
 
-		void destroy();
-		bool isRunning() const;
+		static void setPosition(int x, int y);
+		static void setPosition(const glm::ivec2& position);
 
-		void setPosition(int x, int y) const;
-		void setPosition(const glm::ivec2& position) const;
-
-		void setX(int x) const;
-		void setY(int y) const;
+		static void setX(int x);
+		static void setY(int y);
 		
-		glm::ivec2 getPosition() const;
+		static glm::ivec2 getPosition();
 		
-		int getX() const;
-		int getY() const;
+		static int getX();
+		static int getY();
 
-		void setSize(int width, int height) const;
-		void setSize(const glm::ivec2& size) const;
+		static void setSize(int width, int height);
+		static void setSize(const glm::ivec2& size);
 
-		void setWidth(int width) const;
-		void setHeight(int height) const;
+		static void setWidth(int width);
+		static void setHeight(int height);
 
-		glm::ivec2 getSize() const;
+		static glm::ivec2 getSize();
 		
-		int getWidth() const;
-		int getHeight() const;
+		static int getWidth();
+		static int getHeight();
 
-		void setTitle(const char* format, ...);
-		const char* getTitle() const;
+		static void setTitle(const char* title);
 
 		static void enableVSync();
 		static void disableVSync();
 
-		void grabMouse() const;
-		void releaseMouse() const;
+		static void grabMouse();
+		static void releaseMouse();
+		static void toggleMouse();
 
-		void* getHandle();
+		static bool isMouseGrabbed();
 
-		bool isKeyPressed(KeyCode key) const;
-		bool isKeyJustPressed(KeyCode key) const;
+		static void* getHandle();
 
-		bool isMouseButtonPressed(MouseButton button) const;
-		bool isMouseButtonJustPressed(MouseButton button) const;
+		static bool isKeyPressed(KeyCode key);
+		static bool isKeyJustPressed(KeyCode key);
 
-		glm::vec2 getMousePosition() const;
-		glm::vec2 getMouseDelta() const;
-		glm::vec2 getMouseScrollDelta() const;
+		static bool isMouseButtonPressed(MouseButton button);
+		static bool isMouseButtonJustPressed(MouseButton button);
 
-		float getMouseX() const;
-		float getMouseY() const;
+		static glm::vec2 getMousePosition();
+		static glm::vec2 getMouseDelta();
+		static glm::vec2 getMouseScrollDelta();
 
-		float getMouseDx() const;
-		float getMouseDy() const;
+		static float getMouseX();
+		static float getMouseY();
 
-		float getMouseScrollDx() const;
-		float getMouseScrollDy() const;
+		static float getMouseDx();
+		static float getMouseDy();
 
-		void _API_update();
-
-		void _API_keyInput(int key, int action);
-		void _API_mouseButtonInput(int button, int action);
-		void _API_mouseScrollInput(double dx, double dy);
+		static float getMouseScrollDx();
+		static float getMouseScrollDy();
 	};
 
-	struct BS_API Runnable {
-		virtual void onUpdate(Window* window);
+	struct Runnable {
+		virtual void onUpdate();
 
-		virtual void onKeyEvent(Window* window, KeyCode key, KeyAction action, int mods);
-		virtual void onMouseEvent(Window* window, MouseButton button, ButtonAction action, int mods);
-		virtual void onMouseMoveEvent(Window* window, double x, double y);
-		virtual void onMouseScrollEvent(Window* window, double dx, double dy);
+		virtual void onKeyEvent(KeyCode key, KeyAction action, int mods);
+		virtual void onMouseEvent(MouseButton button, ButtonAction action, int mods);
+		virtual void onMouseMoveEvent(double x, double y);
+		virtual void onMouseScrollEvent(double dx, double dy);
 	};
 }

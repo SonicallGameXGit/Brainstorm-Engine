@@ -1,6 +1,5 @@
 #include "time.h"
 #include <chrono>
-#include <iostream>
 
 namespace Brainstorm {
 	Timer::Timer() {
@@ -22,10 +21,6 @@ namespace Brainstorm {
 
 		this->time += this->delta * this->scale;
 		this->realTime += this->delta;
-	}
-
-	void Timer::setScale(float scale) {
-		this->scale = scale;
 	}
 
 	float Timer::getDelta() const {

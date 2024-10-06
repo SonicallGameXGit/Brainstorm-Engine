@@ -1,43 +1,125 @@
 ﻿#include <Brainstorm/brainstorm.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include "physics.h"
+#include <format>
 
-struct MyNewWindow : BS::Window {
-    MyNewWindow(int width, int height, const char* title);
+struct Camera {
+    glm::vec3 position{}, rotation{};
+
+    glm::mat4 getMatrix() const {
+        glm::mat4 matrix = glm::rotate(glm::mat4(1.0f), glm::radians(this->rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+        matrix = glm::rotate(matrix, glm::radians(this->rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+        matrix = glm::rotate(matrix, glm::radians(this->rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+        matrix = glm::translate(matrix, -this->position);
+
+        return matrix;
+    }
 };
+struct FlyingCamera : Camera {
+private:
+    glm::vec3 velocity{};
+public:
+    float acceleration = 8.0f, speed = 8.0f, rotateSpeed = 0.15f;
+
+    void update(const BS::Timer& timer) {
+        glm::vec3 localForce{};
+        if (BS::Window::isKeyPressed(BS::KeyCode::W)) {
+            localForce.x += sin(glm::radians(this->rotation.y));
+            localForce.z -= cos(glm::radians(this->rotation.y));
+        }
+        if (BS::Window::isKeyPressed(BS::KeyCode::S)) {
+            localForce.x += sin(glm::radians(this->rotation.y + 180.0f));
+            localForce.z -= cos(glm::radians(this->rotation.y + 180.0f));
+        }
+
+        if (BS::Window::isKeyPressed(BS::KeyCode::D)) {
+            localForce.x += sin(glm::radians(this->rotation.y + 90.0f));
+            localForce.z -= cos(glm::radians(this->rotation.y + 90.0f));
+        }
+        if (BS::Window::isKeyPressed(BS::KeyCode::A)) {
+            localForce.x += sin(glm::radians(this->rotation.y - 90.0f));
+            localForce.z -= cos(glm::radians(this->rotation.y - 90.0f));
+        }
+        if (BS::Window::isKeyPressed(BS::KeyCode::SPACE) || BS::Window::isKeyPressed(BS::KeyCode::E)) {
+            localForce.y += 1.0f;
+        }
+        if (BS::Window::isKeyPressed(BS::KeyCode::LEFT_SHIFT) || BS::Window::isKeyPressed(BS::KeyCode::Q)) {
+            localForce.y -= 1.0f;
+        }
+
+        float localForceLength = glm::length(localForce);
+        if (localForceLength > 0.001f) {
+            localForce /= localForceLength;
+        }
+
+        this->velocity = glm::mix(this->velocity, localForce, this->acceleration * timer.getDelta());
+        this->position += this->velocity * this->speed * timer.getDelta();
+
+        this->rotation.x += BS::Window::getMouseDy() * this->rotateSpeed;
+        this->rotation.x = glm::clamp(this->rotation.x, -90.0f, 90.0f);
+
+        this->rotation.y += BS::Window::getMouseDx() * this->rotateSpeed;
+        this->rotation.y -= floor(this->rotation.y / 360.0f) * 360.0f;
+    }
+};
+
+struct Material {
+    GLuint albedoTexture = 0;
+    GLuint normalTexture = 0;
+
+    glm::vec3 color{ 1.0f };
+};
+struct GameObject {
+    static std::vector<GameObject*> gameObjects;
+
+    BS::Mesh* mesh = nullptr;
+    Material* material = nullptr;
+
+    glm::vec3 position, rotation, scale;
+
+    GameObject(BS::Mesh* mesh, Material* material = nullptr, glm::vec3 position = {}, glm::vec3 rotation = {}, glm::vec3 scale = glm::vec3(1.0f));
+    ~GameObject() {
+        this->destroy();
+    }
+
+    glm::mat4 getMatrix() const {
+        glm::mat4 matrix = glm::translate(glm::mat4(1.0f), glm::vec3(this->position));
+        matrix = glm::rotate(matrix, glm::radians(this->rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+        matrix = glm::rotate(matrix, glm::radians(this->rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+        matrix = glm::rotate(matrix, glm::radians(this->rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+        matrix = glm::scale(matrix, this->scale);
+
+        return matrix;
+    }
+
+    void destroy() {
+        GameObject::gameObjects.erase(std::find(GameObject::gameObjects.begin(), GameObject::gameObjects.end(), this));
+    }
+};
+
+std::vector<GameObject*> GameObject::gameObjects = {};
+GameObject::GameObject(BS::Mesh* mesh, Material* material, glm::vec3 position, glm::vec3 rotation, glm::vec3 scale) {
+    this->mesh = mesh;
+    this->material = material;
+    this->position = position;
+    this->rotation = rotation;
+    this->scale = scale;
+
+    GameObject::gameObjects.push_back(this);
+}
 
 class GameLogic : public BS::Runnable {
 private:
     BS::Timer globalTimer;
+
+    int fps = 0, fpsCapture = 0;
+    float fpsTimer = 0.0f;
+
+    const char* windowTitle;
 public:
-    glm::vec3 cubeColor{ 1.0f };
-    glm::vec2 cubeRotation{};
-    float cubeScale = 1.0f;
+    FlyingCamera camera{};
 
-	void onUpdate(BS::Window* window) override {
-        globalTimer.update();
-
-        if (window->isMouseButtonPressed(BS::MouseButton::LEFT)) {
-            window->grabMouse();
-            
-            cubeRotation.x += window->getMouseDy() * 0.1f;
-            cubeRotation.y += window->getMouseDx() * 0.1f;
-        }
-        else {
-            window->releaseMouse();
-            cubeRotation.y += 22.5f * globalTimer.getDelta();
-        }
-        
-        cubeRotation -= glm::floor(cubeRotation / 360.0f) * 360.0f;
-        cubeScale += window->getMouseScrollDy() * 0.01f;
-
-        if (window->isKeyJustPressed(BS::KeyCode::R)) {
-            BS::registerWindow(new MyNewWindow(1920, 1080, "New Window"));
-        }
-	}
-};
-class GameRenderer : public BS::Runnable {
-private:
-	BS::Mesh cubeMesh = BS::Mesh(BS::VertexBuffer({
+    BS::Mesh cubeMesh = BS::Mesh(BS::VertexBuffer({
         0,0,1,
         1,0,1,
         0,1,1,
@@ -79,7 +161,7 @@ private:
         0,0,1,
         1,0,0,
         1,0,1
-	}, 3), {
+    }, 3), {
         BS::VertexBuffer({
             0,0,
             1,0,
@@ -168,70 +250,94 @@ private:
         }, 3)
     }, BS::Mesh::TRIANGLES);
 
-    BS::ShaderProgram shaderProgram = BS::ShaderProgram()
-        .setVertexShader("assets/shaders/vertex.glsl")
-        .setFragmentShader("assets/shaders/fragment.glsl")
-        .compile();
+    Material brickMaterial{
+        .albedoTexture = BS::Texture::loadFromFile("assets/textures/brick.png"),
+        .normalTexture = BS::Texture::loadFromFile("assets/textures/brick_n.png")
+    };
 
-    BS::Texture cubeColorTexture = BS::Texture::loadFromFile("assets/textures/brick-wall_albedo.png");
-    BS::Texture cubeNormalTexture = BS::Texture::loadFromFile("assets/textures/brick-wall_normal-ogl.png");
+    GameObject cube = GameObject(&cubeMesh, &brickMaterial, {}, { 45.0f, 45.0f, 45.0f });
+    GameObject dynamicCube = GameObject(&cubeMesh, &brickMaterial, { 0.0f, 2.0f, 0.0f });
+
+    GameLogic(const char* windowTitle) : windowTitle(windowTitle) {
+        BS::Window::grabMouse();
+
+        this->camera.speed = 4.0f;
+        this->camera.position.z = 5.0f;
+    }
+
+	void onUpdate() override {
+        globalTimer.update();
+        
+        if (BS::Window::isMouseGrabbed()) {
+            this->camera.update(globalTimer);
+        }
+
+        fpsTimer += globalTimer.getRealDelta();
+        fps++;
+
+        if (fpsTimer >= 1.0f) {
+            BS::Window::setTitle(std::format("{} | FPS: {}", windowTitle, fps).c_str());
+
+            fps = 0;
+            fpsTimer = 0.0f;
+        }
+
+        if (BS::Window::isKeyJustPressed(BS::KeyCode::ESCAPE)) {
+            BS::Window::toggleMouse();
+        }
+	}
+};
+class GameRenderer : public BS::Runnable {
+private:
+    BS::ShaderProgram shaderProgram = BS::ShaderProgram("assets/shaders/vertex.glsl", "assets/shaders/fragment.glsl", nullptr);
 public:
     const GameLogic* gameLogic;
 
     GameRenderer(const GameLogic* gameLogic) {
         this->gameLogic = gameLogic;
-        BGL::enableDepthTest();
+        glEnable(GL_DEPTH_TEST);
     }
 
-	void onUpdate(BS::Window* window) override {
-        BGL::clear(BGL::COLOR_BUFFER_BIT | BGL::DEPTH_BUFFER_BIT);
+	void onUpdate() override {
+        glm::mat4 projectionMatrix = glm::perspective(glm::radians(90.0f), static_cast<float>(BS::Window::getWidth()) / static_cast<float>(BS::Window::getHeight()), 0.01f, 500.0f);
+       
+        glm::mat4 viewMatrix = this->gameLogic->camera.getMatrix();
+        this->shaderProgram.setVector3("cameraPosition", this->gameLogic->camera.position);
 
-        shaderProgram.use();
-        shaderProgram.setInt("colorSampler", 0);
-        shaderProgram.setInt("normalSampler", 1);
+        glm::mat4 projViewMatrix = projectionMatrix * viewMatrix;
 
-        glm::mat4 projectionMatrix = glm::perspective(glm::radians(90.0f), static_cast<float>(window->getWidth()) / static_cast<float>(window->getHeight()), 0.01f, 500.0f);
+        this->shaderProgram.setInt("colorSampler", 0);
+        this->shaderProgram.setInt("normalSampler", 1);
 
-        cubeMesh.use();
+        for (const GameObject* gameObject : GameObject::gameObjects) {
+            if (gameObject->mesh == nullptr) return;
 
-        glm::vec2 angle = -glm::radians(gameLogic->cubeRotation);
-        glm::vec3 cameraPosition = gameLogic->cubeScale * 0.5f - glm::vec3(
-            -sin(angle.y) * cos(angle.x),
-            sin(angle.x),
-            -cos(angle.y) * cos(angle.x)
-        );
+            glm::mat4 modelMatrix = gameObject->getMatrix();
 
-        glm::mat4 viewMatrix = glm::mat4(1.0f);
-        viewMatrix = glm::rotate(viewMatrix, glm::radians(gameLogic->cubeRotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-        viewMatrix = glm::rotate(viewMatrix, glm::radians(gameLogic->cubeRotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-        viewMatrix = glm::translate(viewMatrix, -cameraPosition);
-        
-        glm::mat4 modelMatrix = glm::mat4(1.0f);
-        modelMatrix = glm::scale(modelMatrix, glm::vec3(gameLogic->cubeScale));
+            this->shaderProgram.setMatrix4("mvp", projViewMatrix * modelMatrix);
+            this->shaderProgram.setMatrix4("model", modelMatrix);
+            this->shaderProgram.setVector3("color", gameObject->material->color);
 
-        shaderProgram.setMatrix4("mvp", projectionMatrix * viewMatrix * modelMatrix);
-        shaderProgram.setMatrix4("model", modelMatrix);
-        shaderProgram.setVector3("color", gameLogic->cubeColor);
-        shaderProgram.setVector3("cameraPosition", cameraPosition);
+            BS::Texture::use(gameObject->material->albedoTexture, 0);
+            BS::Texture::use(gameObject->material->normalTexture, 1);
 
-        cubeColorTexture.use();
-        cubeNormalTexture.use(1);
-
-        cubeMesh.render();
+            gameObject->mesh->render();
+        }
 	}
 };
 
-MyNewWindow::MyNewWindow(int width, int height, const char* title) : Window(width, height, title) {
-    GameLogic* gameLogic = new GameLogic();
-    gameLogic->cubeColor = glm::normalize(glm::vec3(rand() % 10000 / 10000.0f, rand() % 10000 / 10000.0f, rand() % 10000 / 10000.0f));
-
-    this->addRunnable(gameLogic);
-    this->addRunnable(new GameRenderer(gameLogic));
-}
-
 int main() {
-	BS::initialize();
-	BS::registerWindow(new MyNewWindow(1920, 1080, "MyNewGame!"));
+    BS::Window::create(1920, 1080, "MyNewGame!");
+    GameLogic* gameLogic = new GameLogic("MyNewGame!");
 
-	return BS::run();
+    BS::Window::addRunnable(gameLogic);
+    BS::Window::addRunnable(new GameRenderer(gameLogic));
+
+    while (BS::Window::isRunning()) {
+        BS::Window::pollEvents();
+        BS::Window::swapBuffers();
+    }
+
+    BS::Window::close();
+    return 0;
 }

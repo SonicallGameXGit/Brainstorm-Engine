@@ -1,8 +1,7 @@
 #pragma once
-#include "../defines.h"
 
 namespace Brainstorm {
-	class BS_API Logger {
+	class Logger {
 	public:
 		static void debug(const char* format, ...);
 		static void info(const char* format, ...);

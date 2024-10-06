@@ -1,39 +1,26 @@
 #pragma once
+#include <GL/glew.h>
+#include <glm/glm.hpp>
+
+#include <fstream>
+#include <sstream>
 #include <array>
 
-#include <glm/ext/vector_float2.hpp>
-#include <glm/ext/vector_int2.hpp>
-
-#include <glm/ext/vector_float3.hpp>
-#include <glm/ext/vector_int3.hpp>
-
-#include <glm/ext/vector_float4.hpp>
-#include <glm/ext/vector_int4.hpp>
-
-#include <glm/ext/matrix_float2x2.hpp>
-#include <glm/ext/matrix_float3x3.hpp>
-#include <glm/ext/matrix_float4x4.hpp>
-
-#include "../defines.h"
+#include "../io/logger.h"
 
 namespace Brainstorm {
-	class BS_API ShaderProgram {
+	class ShaderProgram {
 	private:
-		unsigned int id;
-		std::array<unsigned int, 3> shaders;
+		GLuint id;
+		static GLuint boundId;
 
-		unsigned int setShader(const char* location, unsigned int type) const;
+		std::array<GLuint, 3> shaders;
 	public:
-		ShaderProgram();
+		ShaderProgram(const char* vertexLocation, const char* fragmentLocation, const char* geometryLocation);
 
-		ShaderProgram& setVertexShader(const char* location);
-		ShaderProgram& setFragmentShader(const char* location);
-		ShaderProgram& setGeometryShader(const char* location);
-
-		ShaderProgram& compile();
+		void use();
 		void destroy() const;
 		
-		void use() const;
 		static void drop();
 
 		void setBool(const char* location, bool value) const;

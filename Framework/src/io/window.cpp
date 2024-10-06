@@ -1,52 +1,56 @@
 #include "window.h"
-#include "logger.h"
+#include "stb_image.h"
 
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
-#include <GL/glew.h>
-
-#include <cstdarg>
-
-#define HWND static_cast<GLFWwindow*>(this->handle)
-#define UPTR static_cast<Window*>(glfwGetWindowUserPointer(window))
+#define HWND static_cast<GLFWwindow*>(Window::handle)
 
 namespace Brainstorm {
-    constexpr size_t Window_TitleSize = 512;
+    bool Window::created = false, Window::closed = false;
 
-    void Runnable::onUpdate(Window* window) {}
+    void* Window::handle = nullptr;
+    unsigned int Window::currentFrame = 0;
 
-    void Runnable::onKeyEvent(Window* window, KeyCode key, KeyAction action, int mods) {}
-    void Runnable::onMouseEvent(Window* window, MouseButton button, ButtonAction action, int mods) {}
-    void Runnable::onMouseMoveEvent(Window* window, double x, double y) {}
-    void Runnable::onMouseScrollEvent(Window* window, double dx, double dy) {}
+    unsigned int* Window::keys = new unsigned int[static_cast<size_t>(KeyCode::LAST) + 2]();
+    unsigned int* Window::buttons = new unsigned int[static_cast<size_t>(KeyCode::LAST) + 2]();
 
-	Window::Window(int width, int height, const char* title) {
-        this->handle = nullptr;
-        this->destroyed = false;
-        this->title = new char[Window_TitleSize]();
-        this->viewportBounds = { glm::vec2(), glm::vec2(1.0f) };
+    glm::vec2 Window::lastMousePosition = {}, Window::mousePosition = {}, Window::mouseDelta = {}, Window::mouseScroll = {}, Window::mouseScrollCapture = {};
+    std::vector<Runnable*> Window::runnables = {};
 
-        this->keys = new unsigned int[static_cast<size_t>(KeyCode::LAST) + 2]();
-        this->buttons = new unsigned int[static_cast<size_t>(KeyCode::LAST) + 1]();
+    ViewportBounds Window::viewportBounds = {};
 
-        this->lastMousePosition = {};
-        this->mousePosition = {};
-        this->mouseDelta = {};
-        this->mouseScroll = {};
-        this->mouseScrollCapture = {};
+    KeyCallback Window::keyCallback = nullptr;
+    MouseCallback Window::mouseCallback = nullptr;
+    MouseMoveCallback Window::mouseMoveCallback = nullptr;
+    MouseScrollCallback Window::mouseScrollCallback = nullptr;
 
-        this->runnables = {};
+    void Runnable::onUpdate() {}
 
-        memcpy(this->title, title, Window_TitleSize * sizeof(char));
+    void Runnable::onKeyEvent(KeyCode key, KeyAction action, int mods) {}
+    void Runnable::onMouseEvent(MouseButton button, ButtonAction action, int mods) {}
+    void Runnable::onMouseMoveEvent(double x, double y) {}
+    void Runnable::onMouseScrollEvent(double dx, double dy) {}
 
-        if ((this->handle = glfwCreateWindow(width, height, title, nullptr, nullptr)) == nullptr) {
+	void Window::create(int width, int height, const char* title) {
+        if (Window::created) {
+            Logger::error("Window already created!");
+            return;
+        }
+        Window::created = true;
+
+        if (!glfwInit()) {
+            Logger::fatal("Could not initialize Brainstorm.");
+            return;
+        }
+
+        stbi_set_flip_vertically_on_load(true);
+        Logger::info("Brainstorm initialized.\n");
+
+        if ((Window::handle = glfwCreateWindow(width, height, title, nullptr, nullptr)) == nullptr) {
             Logger::error("Could not create the window. Params: width=%d, height=%d, title=\"%s\".", width, height, title);
             return;
         }
 
-        glfwSetWindowUserPointer(HWND, this);
         glfwSetFramebufferSizeCallback(HWND, [](GLFWwindow* window, int width, int height) -> void {
-            ViewportBounds bounds = UPTR->viewportBounds;
+            ViewportBounds bounds = Window::viewportBounds;
             glViewport(
                 static_cast<GLint>(bounds.offset.x * width), static_cast<GLint>(bounds.offset.y * height),
                 static_cast<GLint>(bounds.scale.x * width), static_cast<GLint>(bounds.scale.y * height)
@@ -54,43 +58,61 @@ namespace Brainstorm {
         });
         
         glfwSetKeyCallback(HWND, [](GLFWwindow* window, int key, int scancode, int action, int mods) -> void {
-            UPTR->_API_keyInput(key, action);
-            UPTR->onKeyEvent(KeyCode(key), KeyAction(action), mods);
+            switch (action) {
+            case GLFW_RELEASE:
+                Window::keys[key + 1] = 0;
+                break;
+            case GLFW_PRESS:
+                Window::keys[key + 1] = Window::currentFrame;
+                break;
+            }
 
-            for (Runnable* runnable : UPTR->runnables) {
-                runnable->onKeyEvent(UPTR, KeyCode(key), KeyAction(action), mods);
+            if (Window::keyCallback != nullptr) Window::keyCallback(KeyCode(key), KeyAction(action), mods);
+            for (Runnable* runnable : Window::runnables) {
+                runnable->onKeyEvent(KeyCode(key), KeyAction(action), mods);
             }
         });
         glfwSetMouseButtonCallback(HWND, [](GLFWwindow* window, int button, int action, int mods) -> void {
-            UPTR->_API_mouseButtonInput(button, action);
-            UPTR->onMouseEvent(MouseButton(button), ButtonAction(action), mods);
+            switch (action)
+            {
+            case GLFW_RELEASE:
+                Window::buttons[button] = 0;
+                break;
+            case GLFW_PRESS:
+                Window::buttons[button] = Window::currentFrame;
+                break;
+            default:
+                break;
+            }
 
-            for (Runnable* runnable : UPTR->runnables) {
-                runnable->onMouseEvent(UPTR, MouseButton(button), ButtonAction(action), mods);
+            if (Window::mouseCallback != nullptr) Window::mouseCallback(MouseButton(button), ButtonAction(action), mods);
+            for (Runnable* runnable : Window::runnables) {
+                runnable->onMouseEvent(MouseButton(button), ButtonAction(action), mods);
             }
         });
         glfwSetCursorPosCallback(HWND, [](GLFWwindow* window, double xpos, double ypos) -> void {
-            UPTR->onMouseMoveEvent(xpos, ypos);
+            if (Window::mouseMoveCallback != nullptr) Window::mouseMoveCallback(xpos, ypos);
 
-            for (Runnable* runnable : UPTR->runnables) {
-                runnable->onMouseMoveEvent(UPTR, xpos, ypos);
+            for (Runnable* runnable : Window::runnables) {
+                runnable->onMouseMoveEvent(xpos, ypos);
             }
         });
         glfwSetScrollCallback(HWND, [](GLFWwindow* window, double xoffset, double yoffset) -> void {
-            UPTR->_API_mouseScrollInput(xoffset, yoffset);
-            UPTR->onMouseScrollEvent(xoffset, yoffset);
+            Window::mouseScroll.x += static_cast<float>(xoffset);
+            Window::mouseScroll.y += static_cast<float>(yoffset);
 
-            for (Runnable* runnable : UPTR->runnables) {
-                runnable->onMouseScrollEvent(UPTR, xoffset, yoffset);
+            if (Window::mouseScrollCallback != nullptr) Window::mouseScrollCallback(xoffset, yoffset);
+            for (Runnable* runnable : Window::runnables) {
+                runnable->onMouseScrollEvent(xoffset, yoffset);
             }
         });
 
         glfwMakeContextCurrent(HWND);
-        Logger::info("Window \"%p\" created.", this);
+        Logger::info("Window created.", HWND);
 
         if (glewInit() != GLEW_OK) {
-            Logger::error("Could not initialize GLEW for window: \"%p\".", this);
-            this->destroy();
+            Logger::error("Could not initialize GLEW.");
+            Window::close();
 
             return;
         }
@@ -98,130 +120,169 @@ namespace Brainstorm {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
 	}
-    Window::~Window() {
-        delete[] this->keys;
-        delete[] this->buttons;
+    void Window::close() {
+        if (Window::closed) {
+            Logger::error("Window already closed.");
+            return;
+        }
+        Window::closed = true;
 
-        this->destroy();
-    }
+        delete[] Window::keys;
+        delete[] Window::buttons;
 
-    void Window::onUpdate() {}
-
-    void Window::onKeyEvent(KeyCode key, KeyAction action, int mods) {}
-    void Window::onMouseEvent(MouseButton button, ButtonAction action, int mods) {}
-    void Window::onMouseMoveEvent(double x, double y) {}
-    void Window::onMouseScrollEvent(double dx, double dy) {}
-
-    bool Window::isRunning() const {
-        return !glfwWindowShouldClose(HWND);
-    }
-
-    void Window::addRunnable(Runnable* runnable) {
-        this->runnables.push_back(runnable);
-    }
-    void Window::destroy() {
-        if (this->destroyed) return;
-        this->destroyed = true;
-
-        for (Runnable* runnable : this->runnables) {
+        for (Runnable* runnable : Window::runnables) {
             delete runnable;
         }
 
         glfwDestroyWindow(HWND);
-        Logger::info("Window \"%p\" destroyed.", this);
+        Logger::info("Window destroyed.");
     }
 
-    void Window::setPosition(int x, int y) const {
+    void Window::pollEvents() {
+        glfwPollEvents();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        Window::currentFrame++;
+
+        Window::mouseScrollCapture = Window::mouseScroll;
+        Window::mouseScroll = glm::vec2();
+
+        double mx, my;
+        glfwGetCursorPos(HWND, &mx, &my);
+
+        Window::mousePosition = glm::vec2(static_cast<float>(mx), static_cast<float>(my));
+        Window::mouseDelta = Window::mousePosition - Window::lastMousePosition;
+        Window::lastMousePosition = Window::mousePosition;
+
+        for (Runnable* runnable : Window::runnables) {
+            runnable->onUpdate();
+        }
+    }
+    void Window::swapBuffers() {
+        glfwSwapBuffers(HWND);
+    }
+
+    void Window::setKeyCallback(const KeyCallback callback) {
+        Window::keyCallback = callback;
+    }
+    void Window::setMouseCallback(const MouseCallback callback) {
+        Window::mouseCallback = callback;
+    }
+    void Window::setMouseMoveCallback(const MouseMoveCallback callback) {
+        Window::mouseMoveCallback = callback;
+    }
+    void Window::setMouseScrollCallback(const MouseScrollCallback callback) {
+        Window::mouseScrollCallback = callback;
+    }
+
+    bool Window::isRunning() {
+        return !glfwWindowShouldClose(HWND);
+    }
+
+    void Window::addRunnable(Runnable* runnable) {
+        Window::runnables.push_back(runnable);
+    }
+
+    void Window::setPosition(int x, int y) {
         glfwSetWindowPos(HWND, x, y);
     }
-    void Window::setPosition(const glm::ivec2& position) const {
+    void Window::setPosition(const glm::ivec2& position) {
         glfwSetWindowPos(HWND, position.x, position.y);
     }
 
-    void Window::setX(int x) const {
-        this->setPosition(x, this->getY());
+    void Window::setX(int x) {
+        Window::setPosition(x, Window::getY());
     }
-    void Window::setY(int y) const {
-        this->setPosition(this->getX(), y);
+    void Window::setY(int y) {
+        Window::setPosition(Window::getX(), y);
     }
 
-    glm::ivec2 Window::getPosition() const {
+    glm::ivec2 Window::getPosition() {
         glm::ivec2 position{};
         glfwGetWindowPos(HWND, &position.x, &position.y);
 
         return position;
     }
 
-    int Window::getX() const {
+    int Window::getX() {
         int x;
         glfwGetWindowPos(HWND, &x, nullptr);
 
         return x;
     }
-    int Window::getY() const {
+    int Window::getY() {
         int y;
         glfwGetWindowPos(HWND, nullptr, &y);
 
         return y;
     }
 
-    void Window::setSize(int width, int height) const {
+    void Window::setSize(int width, int height) {
         glfwSetWindowSize(HWND, width, height);
     }
-    void Window::setSize(const glm::ivec2& size) const {
+    void Window::setSize(const glm::ivec2& size) {
         glfwSetWindowSize(HWND, size.x, size.y);
     }
 
-    void Window::setWidth(int width) const {
-        this->setSize(width, this->getHeight());
+    void Window::setWidth(int width) {
+        Window::setSize(width, Window::getHeight());
     }
-    void Window::setHeight(int height) const {
-        this->setSize(this->getWidth(), height);
+    void Window::setHeight(int height) {
+        Window::setSize(Window::getWidth(), height);
     }
 
-    glm::ivec2 Window::getSize() const {
+    glm::ivec2 Window::getSize() {
         glm::ivec2 size{};
         glfwGetWindowSize(HWND, &size.x, &size.y);
 
         return size;
     }
 
-    int Window::getWidth() const {
+    int Window::getWidth() {
         int width;
         glfwGetWindowSize(HWND, &width, nullptr);
 
         return width;
     }
-    int Window::getHeight() const {
+    int Window::getHeight() {
         int height;
         glfwGetWindowSize(HWND, nullptr, &height);
 
         return height;
     }
 
-    void Window::setTitle(const char* format, ...) {
-        va_list args;
-        memset(this->title, 0, Window_TitleSize * sizeof(char));
-
-        va_start(args, format);
-        vsnprintf(this->title, Window_TitleSize * sizeof(char), format, args);
-        va_end(args);
-
+    void Window::setTitle(const char* title) {
         glfwSetWindowTitle(HWND, title);
-    }
-    const char* Window::getTitle() const {
-        return static_cast<const char*>(this->title);
     }
 
     void* Window::getHandle() {
-        return this->handle;
+        return Window::handle;
     }
 
-    void Window::grabMouse() const {
+    void Window::grabMouse() {
         glfwSetInputMode(HWND, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        Window::resetMouse();
     }
-    void Window::releaseMouse() const {
+    void Window::releaseMouse() {
         glfwSetInputMode(HWND, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        Window::resetMouse();
+    }
+    void Window::toggleMouse() {
+        glfwSetInputMode(HWND, GLFW_CURSOR, Window::isMouseGrabbed() ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+        Window::resetMouse();
+    }
+
+    bool Window::isMouseGrabbed() {
+        return glfwGetInputMode(HWND, GLFW_CURSOR) == GLFW_CURSOR_DISABLED;
+    }
+
+    void Window::resetMouse() {
+        Window::mouseDelta = {};
+
+        double x, y;
+        glfwGetCursorPos(HWND, &x, &y);
+
+        Window::mousePosition = glm::vec2(static_cast<float>(x), static_cast<float>(y));
+        Window::lastMousePosition = Window::mousePosition;
     }
 
     void Window::enableVSync() {
@@ -231,94 +292,48 @@ namespace Brainstorm {
         glfwSwapInterval(0);
     }
 
-    bool Window::isKeyPressed(KeyCode key) const {
-        return this->keys[static_cast<size_t>(key) + 1] > 0;
+    bool Window::isKeyPressed(KeyCode key) {
+        return Window::keys[static_cast<size_t>(key) + 1] > 0;
     }
-    bool Window::isKeyJustPressed(KeyCode key) const {
-        return this->keys[static_cast<size_t>(key) + 1] == this->currentFrame - 1;
-    }
-
-    bool Window::isMouseButtonPressed(MouseButton button) const {
-        return this->buttons[static_cast<size_t>(button)] > 0;
-    }
-    bool Window::isMouseButtonJustPressed(MouseButton button) const {
-        return this->buttons[static_cast<size_t>(button)] == this->currentFrame - 1;
+    bool Window::isKeyJustPressed(KeyCode key) {
+        return Window::keys[static_cast<size_t>(key) + 1] == Window::currentFrame - 1;
     }
 
-    glm::vec2 Window::getMousePosition() const {
-        return this->mousePosition;
+    bool Window::isMouseButtonPressed(MouseButton button) {
+        return Window::buttons[static_cast<size_t>(button)] > 0;
     }
-    glm::vec2 Window::getMouseDelta() const {
-        return this->mouseDelta;
-    }
-    glm::vec2 Window::getMouseScrollDelta() const {
-        return this->mouseScrollCapture;
+    bool Window::isMouseButtonJustPressed(MouseButton button) {
+        return Window::buttons[static_cast<size_t>(button)] == Window::currentFrame - 1;
     }
 
-    float Window::getMouseX() const {
-        return this->mousePosition.x;
+    glm::vec2 Window::getMousePosition() {
+        return Window::mousePosition;
     }
-    float Window::getMouseY() const {
-        return this->mousePosition.y;
+    glm::vec2 Window::getMouseDelta() {
+        return Window::mouseDelta;
     }
-
-    float Window::getMouseDx() const {
-        return this->mouseDelta.x;
-    }
-    float Window::getMouseDy() const {
-        return this->mouseDelta.y;
+    glm::vec2 Window::getMouseScrollDelta() {
+        return Window::mouseScrollCapture;
     }
 
-    float Window::getMouseScrollDx() const {
-        return this->mouseScrollCapture.x;
+    float Window::getMouseX() {
+        return Window::mousePosition.x;
     }
-    float Window::getMouseScrollDy() const {
-        return this->mouseScrollCapture.y;
-    }
-
-    void Window::_API_update() {
-        this->currentFrame++;
-
-        this->mouseScrollCapture = this->mouseScroll;
-        this->mouseScroll = glm::vec2();
-
-        double mx, my;
-        glfwGetCursorPos(HWND, &mx, &my);
-
-        this->mousePosition = glm::vec2(static_cast<float>(mx), static_cast<float>(my));
-        this->mouseDelta = this->mousePosition - this->lastMousePosition;
-        this->lastMousePosition = this->mousePosition;
-
-        for (Runnable* runnable : this->runnables) {
-            runnable->onUpdate(this);
-        }
+    float Window::getMouseY() {
+        return Window::mousePosition.y;
     }
 
-    void Window::_API_keyInput(int key, int action) {
-        switch (action) {
-        case GLFW_RELEASE:
-            this->keys[key + 1] = 0;
-            break;
-        case GLFW_PRESS:
-            this->keys[key + 1] = this->currentFrame;
-            break;
-        }
+    float Window::getMouseDx() {
+        return Window::mouseDelta.x;
     }
-    void Window::_API_mouseButtonInput(int button, int action) {
-        switch (action)
-        {
-        case GLFW_RELEASE:
-            this->buttons[button] = 0;
-            break;
-        case GLFW_PRESS:
-            this->buttons[button] = this->currentFrame;
-            break;
-        default:
-            break;
-        }
+    float Window::getMouseDy() {
+        return Window::mouseDelta.y;
     }
-    void Window::_API_mouseScrollInput(double dx, double dy) {
-        this->mouseScroll.x += static_cast<float>(dx);
-        this->mouseScroll.y += static_cast<float>(dy);
+
+    float Window::getMouseScrollDx() {
+        return Window::mouseScrollCapture.x;
+    }
+    float Window::getMouseScrollDy() {
+        return Window::mouseScrollCapture.y;
     }
 }
