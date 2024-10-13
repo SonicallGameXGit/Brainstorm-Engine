@@ -10,10 +10,15 @@ namespace Brainstorm {
 	GLint Texture::FILTER_LINEAR = GL_LINEAR;
 	GLint Texture::FILTER_NEAREST = GL_NEAREST;
 
+	GLint Texture::CLAMP_TO_EDGE = GL_CLAMP_TO_EDGE;
+	GLint Texture::CLAMP_TO_BORDER = GL_CLAMP_TO_BORDER;
+	GLint Texture::CLAMP_REPEAT = GL_REPEAT;
+	GLint Texture::CLAMP_MIRRORED_REPEAT = GL_MIRRORED_REPEAT;
+
 	bool Texture::initialized = false;
 	std::array<GLuint, 32> Texture::boundIds = {};
 
-	GLuint Texture::loadFromFile(const char* location, GLint filter) {
+	GLuint Texture::loadFromFile(const char* location, GLint filter, GLint clamp) {
 		int width, height, channels;
 		unsigned char* pixels = stbi_load(location, &width, &height, &channels, STBI_rgb_alpha);
 
@@ -42,16 +47,16 @@ namespace Brainstorm {
 			return 0;
 		}
 
-		return Texture::create(pixels, width, height, format, filter);
+		return Texture::create(pixels, width, height, format, filter, clamp);
 	}
-	GLuint Texture::create(const unsigned char* data, GLsizei width, GLsizei height, GLint format, GLint filter) {
+	GLuint Texture::create(const unsigned char* data, GLsizei width, GLsizei height, GLint format, GLint filter, GLint clamp) {
 		GLuint texture;
 		
 		glGenTextures(1, &texture);
 		glBindTexture(GL_TEXTURE_2D, texture);
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, clamp);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, clamp);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
 

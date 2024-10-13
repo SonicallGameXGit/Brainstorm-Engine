@@ -1,25 +1,44 @@
 #pragma once
 #include <GL/glew.h>
-#include <array>
+#include <vector>
 
+#include "../graphics/texture.h"
 #include "../io/logger.h"
 
 namespace Brainstorm {
-	enum class AttachmentFormat : GLenum {
-		DEPTH, R, RG, RGB, RGBA
+	enum class AttachmentType : GLenum {
+		DEPTH, COLOR_RGBA, COLOR_RGB, NORMAL
 	};
 
 	struct Attachment {
-		AttachmentFormat format;
-		GLsizei width, height;
+		GLuint texture;
+
+		AttachmentType type;
+		GLint filter, clamp;
+
+		Attachment(AttachmentType type, GLint filter, GLint clamp);
 	};
 
-	template<size_t Attachments>
 	class FrameBuffer {
 	private:
-		GLuint id;
-		std::array<GLuint, Attachments> attachments;
+		GLuint id, depthId;
+		GLsizei width, height;
+
+		std::vector<Attachment> attachments;
+
+		inline void createAttachments();
 	public:
-		FrameBuffer(const std::array<Attachment, Attachments>& attachments);
+		FrameBuffer(const std::vector<Attachment>& attachments, GLsizei width, GLsizei height);
+		~FrameBuffer();
+
+		void use() const;
+
+		static void drop();
+		static void drop(GLsizei previousWidth, GLsizei previousHeight);
+
+		void clear() const;
+		void resize(GLsizei width, GLsizei height);
+
+		GLint getTexture(size_t attachment) const;
 	};
 }

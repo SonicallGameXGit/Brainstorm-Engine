@@ -18,13 +18,16 @@ namespace Brainstorm {
 		static GLint FILTER_LINEAR;
 		static GLint FILTER_NEAREST;
 
-		static GLuint loadFromFile(const char* location, GLint filter = Texture::FILTER_LINEAR);
-		static GLuint create(const unsigned char* data, GLsizei width, GLsizei height, GLint format, GLint filter = Texture::FILTER_LINEAR);
+		static GLint CLAMP_TO_EDGE;
+		static GLint CLAMP_TO_BORDER;
+		static GLint CLAMP_REPEAT;
+		static GLint CLAMP_MIRRORED_REPEAT;
+
+		static GLuint loadFromFile(const char* location, GLint filter = Texture::FILTER_LINEAR, GLint clamp = Texture::CLAMP_REPEAT);
+		static GLuint create(const unsigned char* data, GLsizei width, GLsizei height, GLint format, GLint filter = Texture::FILTER_LINEAR, GLint clamp = Texture::CLAMP_REPEAT);
 		
 		static void use(GLuint texture, GLint index = 0);
 		static void destroy(GLuint texture);
 		static void drop();
-
-		static void _API_init();
 	};
 }

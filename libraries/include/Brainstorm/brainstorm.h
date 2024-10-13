@@ -8,5 +8,7 @@
 #include "graphics/framebuffer.h"
 
 #include "util/time.h"
+#include "util/maths.h"
+#include "util/physics.h"
 
 namespace BS = Brainstorm;

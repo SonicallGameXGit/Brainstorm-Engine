@@ -7,7 +7,7 @@ namespace Brainstorm {
     bool Window::created = false, Window::closed = false;
 
     void* Window::handle = nullptr;
-    unsigned int Window::currentFrame = 0;
+    unsigned int Window::currentFrame = 1;
 
     unsigned int* Window::keys = new unsigned int[static_cast<size_t>(KeyCode::LAST) + 2]();
     unsigned int* Window::buttons = new unsigned int[static_cast<size_t>(KeyCode::LAST) + 2]();
@@ -18,6 +18,7 @@ namespace Brainstorm {
     ViewportBounds Window::viewportBounds = {};
 
     KeyCallback Window::keyCallback = nullptr;
+    CharCallback Window::charCallback = nullptr;
     MouseCallback Window::mouseCallback = nullptr;
     MouseMoveCallback Window::mouseMoveCallback = nullptr;
     MouseScrollCallback Window::mouseScrollCallback = nullptr;
@@ -25,6 +26,7 @@ namespace Brainstorm {
     void Runnable::onUpdate() {}
 
     void Runnable::onKeyEvent(KeyCode key, KeyAction action, int mods) {}
+    void Runnable::onCharEvent(char character) {}
     void Runnable::onMouseEvent(MouseButton button, ButtonAction action, int mods) {}
     void Runnable::onMouseMoveEvent(double x, double y) {}
     void Runnable::onMouseScrollEvent(double dx, double dy) {}
@@ -72,6 +74,12 @@ namespace Brainstorm {
                 runnable->onKeyEvent(KeyCode(key), KeyAction(action), mods);
             }
         });
+        glfwSetCharCallback(HWND, [](GLFWwindow* window, unsigned int codepoint) -> void {
+            if (Window::charCallback != nullptr) Window::charCallback(codepoint);
+            for (Runnable* runnable : Window::runnables) {
+                runnable->onCharEvent(codepoint);
+            }
+            });
         glfwSetMouseButtonCallback(HWND, [](GLFWwindow* window, int button, int action, int mods) -> void {
             switch (action)
             {
@@ -164,6 +172,9 @@ namespace Brainstorm {
     void Window::setKeyCallback(const KeyCallback callback) {
         Window::keyCallback = callback;
     }
+    void Window::setCharCallback(const CharCallback callback) {
+        Window::charCallback = callback;
+    }
     void Window::setMouseCallback(const MouseCallback callback) {
         Window::mouseCallback = callback;
     }
@@ -172,6 +183,10 @@ namespace Brainstorm {
     }
     void Window::setMouseScrollCallback(const MouseScrollCallback callback) {
         Window::mouseScrollCallback = callback;
+    }
+
+    float Window::getAspect() {
+        return static_cast<float>(Window::getWidth()) / static_cast<float>(Window::getHeight());
     }
 
     bool Window::isRunning() {

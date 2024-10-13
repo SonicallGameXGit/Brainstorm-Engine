@@ -22,6 +22,7 @@ namespace Brainstorm {
 	struct Runnable;
 
 	typedef void (*KeyCallback)(KeyCode key, KeyAction action, int mods);
+	typedef void (*CharCallback)(unsigned int character);
 	typedef void (*MouseCallback)(MouseButton button, ButtonAction action, int mods);
 	typedef void (*MouseMoveCallback)(double x, double y);
 	typedef void (*MouseScrollCallback)(double dx, double dy);
@@ -37,6 +38,7 @@ namespace Brainstorm {
 		static glm::vec2 lastMousePosition, mousePosition, mouseDelta, mouseScroll, mouseScrollCapture;
 
 		static KeyCallback keyCallback;
+		static CharCallback charCallback;
 		static MouseCallback mouseCallback;
 		static MouseMoveCallback mouseMoveCallback;
 		static MouseScrollCallback mouseScrollCallback;
@@ -51,10 +53,13 @@ namespace Brainstorm {
 		static void pollEvents();
 		static void close();
 		
-		virtual void setKeyCallback(const KeyCallback callback);
-		virtual void setMouseCallback(const MouseCallback callback);
-		virtual void setMouseMoveCallback(const MouseMoveCallback callback);
-		virtual void setMouseScrollCallback(const MouseScrollCallback callback);
+		static void setKeyCallback(const KeyCallback callback);
+		static void setCharCallback(const CharCallback callback);
+		static void setMouseCallback(const MouseCallback callback);
+		static void setMouseMoveCallback(const MouseMoveCallback callback);
+		static void setMouseScrollCallback(const MouseScrollCallback callback);
+
+		static float getAspect();
 
 		static void addRunnable(Runnable* runnable);
 		static bool isRunning();
@@ -118,6 +123,7 @@ namespace Brainstorm {
 		virtual void onUpdate();
 
 		virtual void onKeyEvent(KeyCode key, KeyAction action, int mods);
+		virtual void onCharEvent(char character);
 		virtual void onMouseEvent(MouseButton button, ButtonAction action, int mods);
 		virtual void onMouseMoveEvent(double x, double y);
 		virtual void onMouseScrollEvent(double dx, double dy);

@@ -10,30 +10,21 @@ uniform sampler2D colorSampler, normalSampler;
 uniform vec3 color, cameraPosition;
 
 void main() {
-    vec3 mappedNormal = texture2D(normalSampler, texcoord).xyz * 2.0 - 1.0;
-    mappedNormal = normalize(mix(mappedNormal, vec3(0.0, 0.0, 1.0), 0.4));
+    vec3 normalMap = texture2D(normalSampler, texcoord).xyz * 2.0 - 1.0;
+    normalMap = normalize(mix(normalMap, vec3(0.0, 0.0, 1.0), 0.4));
 
-    vec3 normal = normalize(normal);
-    vec3 tangent;
-    vec3 bitangent;
-
-    vec3 c1 = cross(vec3(0.0, 1.0, 0.0), normal);
-    vec3 c2 = cross(vec3(1.0, 0.0, 0.0), normal);
-
-    if (length(c1) > length(c2))
-        tangent = c1;
-    else
-        tangent = c2;
-
-    tangent = normalize(tangent);
-    bitangent = normalize(cross(normal, tangent));
-
+    vec3 reference = vec3(0.0, 1.0, 0.0);
     vec3 N = normalize(normal);
-    vec3 T = normalize(tangent);
-    vec3 B = normalize(bitangent);
-    mat3 TBN = mat3(T, B, N);
 
-    vec3 worldNormal = normalize(TBN * mappedNormal);
+    if (abs(dot(N, reference)) > 0.999) {
+        reference = vec3(1.0, 0.0, 0.0);
+    }
+
+    vec3 T = normalize(cross(reference, N));
+    vec3 B = normalize(cross(N, T));
+
+    mat3 TBN = mat3(T, B, N);
+    vec3 worldNormal = normalize(TBN * normalMap);
 
     float diffuse = max(dot(worldNormal, SunDirection), 0.3);
     float specular = max(dot(reflect(SunDirection, worldNormal), normalize(position - cameraPosition)), 0.0);

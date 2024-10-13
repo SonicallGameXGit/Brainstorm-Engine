@@ -166,6 +166,8 @@ xcopy "$(ProjectDir)libraries\lib" "$(SolutionDir)libraries\lib" /s /i /y</Comma
     <ClCompile Include="src\graphics\texture.cpp" />
     <ClCompile Include="src\io\logger.cpp" />
     <ClCompile Include="src\io\window.cpp" />
+    <ClCompile Include="src\util\maths.cpp" />
+    <ClCompile Include="src\util\physics.cpp" />
     <ClCompile Include="src\util\time.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -177,6 +179,8 @@ xcopy "$(ProjectDir)libraries\lib" "$(SolutionDir)libraries\lib" /s /i /y</Comma
     <ClInclude Include="src\io\input.h" />
     <ClInclude Include="src\io\logger.h" />
     <ClInclude Include="src\io\window.h" />
+    <ClInclude Include="src\util\maths.h" />
+    <ClInclude Include="src\util\physics.h" />
     <ClInclude Include="src\util\time.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
